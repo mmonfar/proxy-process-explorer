@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proxy Process Explorer</title>
+<style>/*@STYLES@*/</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="mm-wordmark" role="img" aria-label="mmonfar">mmonfar<i class="mm-dot"></i></div>
+    <span class="sep" aria-hidden="true"></span>
+    <div>
+      <h1>Proxy process explorer</h1>
+      <p class="sub" id="subTitle">Step timestamps in, process view out · runs offline in this browser</p>
+    </div>
+  </div>
+  <div class="actions">
+    <span id="fileName" class="file"></span>
+    <button id="setupBtn" class="btn" hidden>Setup</button>
+    <label class="btn" for="file" tabindex="0" id="loadLbl">Load file</label>
+    <input id="file" type="file" accept=".xlsx,.csv" class="vh" tabindex="-1">
+    <input id="cfgFile" type="file" accept=".json,application/json" class="vh" tabindex="-1">
+    <button id="exportBtn" class="btn primary" disabled>Export slides (.pptx)</button>
+  </div>
+</header>
+<div class="privacy">Runs only in this browser. The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.</div>
+<main>
+  <section id="empty" class="empty">
+    <div class="lbl">Prototype · synthetic sample included</div>
+    <h2>See how cases move through a process</h2>
+    <p>Load a spreadsheet with one row per case and one timestamp column per step. A short setup asks which column is which, what the happy flow looks like, which rules apply and which variables matter. Everything else is calculated from the timestamps.</p>
+    <div class="row">
+      <label class="btn primary" for="file">Choose a .csv or .xlsx file</label>
+      <button class="btn" id="sampleBtn">Try the synthetic sample</button>
+      <label class="btn ghost" for="cfgFile" tabindex="0" id="cfgLbl">Import a saved setup (.json)</label>
+    </div>
+    <div id="cfgNote"></div>
+    <div id="loadErr"><div class="err" id="scriptBlocked">This viewer is blocking the page's scripts, so files can't be loaded here. Download the .html file and open it directly in a current browser.</div></div>
+    <div class="shape">
+      <div class="lbl">Expected shape</div>
+      <table>
+        <tr><th>case_id</th><th>unit</th><th>step_a_at</th><th>step_b_at</th><th>…</th><th>finished_at</th><th>delay_reason</th></tr>
+        <tr><td>C-001</td><td>Unit A</td><td>2026-03-02 09:10</td><td>2026-03-02 10:05</td><td>…</td><td>2026-03-02 13:40</td><td>Awaiting transport</td></tr>
+      </table>
+      Column names are free. Dates can be spreadsheet dates or text such as 2026-03-02 09:10, 02/03/2026 9:10 or 2 Mar 2026 09:10. The header row can sit below report titles. Columns that look like personal data (names, dates of birth, record numbers, contact details) are ignored unless you choose otherwise.
+    </div>
+  </section>
+
+  <section id="wiz" class="wiz" hidden>
+    <div class="wiz-h">
+      <div><div class="lbl">Setup</div><h2 id="wizTitle">Columns</h2></div>
+      <div class="note" id="wizFile" style="margin:0"></div>
+    </div>
+    <nav class="steps" id="wizSteps"></nav>
+    <div class="wiz-b" id="wizBody"></div>
+    <div class="wiz-f">
+      <div class="grp"><button class="btn" id="wizBack">Back</button><button class="btn primary" id="wizNext">Next</button></div>
+      <div class="grp"><button class="btn ghost" id="cfgExport">Export setup (.json)</button><label class="btn ghost" for="cfgFile" tabindex="0">Import setup</label><button class="btn ghost" id="wizCancel" hidden>Cancel</button></div>
+    </div>
+  </section>
+
+  <section id="app" hidden>
+    <div class="filters" id="filters">
+      <div id="fPrimary" style="display:contents"></div>
+      <div id="more" hidden></div>
+      <div class="fbar-r">
+        <button class="btn ghost" id="moreBtn">More filters</button>
+        <div class="seg" id="combSeg" title="How selections in different filters combine. Values within one filter always combine with OR."><button data-c="and" class="on">Match all</button><button data-c="or">Match any</button></div>
+        <button class="btn ghost" id="clearF">Clear filters</button>
+        <div class="fl"><button class="btn ghost" id="setBtn">Settings</button>
+          <div class="pop set-pop" id="setPop" hidden style="left:auto;right:0">
+            <h4>Weekend days</h4><div class="days" id="wkDays"></div>
+            <h4>Day and hour are taken from</h4>
+            <div class="seg" id="basisSeg"><button data-b="start" class="on">Start step</button><button data-b="end">End step</button></div>
+            <p class="note">Weekend defaults to Saturday and Sunday. Used by weekday and weekend comparisons, the day filters and the findings.</p>
+          </div></div>
+      </div>
+    </div>
+    <div id="fchips" class="chipsrow"></div>
+    <div id="warn" class="warn" hidden></div>
+    <div class="kpis" id="kpis"></div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button class="on" data-tab="process">Process map</button>
+      <button data-tab="timing">Timing and delays</button>
+      <!--@RISK_TAB_BUTTON@-->
+      <button data-tab="compare">Groups and days</button>
+      <button data-tab="time">Time of day</button>
+      <button data-tab="lookup">Case lookup</button>
+      <button data-tab="findings">Findings</button>
+    </nav>
+
+    <div id="tab-process" class="tab">
+      <div class="grid-proc">
+        <div>
+          <div class="card map-card" id="mapCard">
+            <div class="card-h">
+              <h2>Process map</h2>
+              <div class="ctrl">
+                <div class="seg" id="metricSeg"><button data-m="freq" class="on">Share of cases</button><button data-m="med">Median time</button><button data-m="mean">Mean time</button></div>
+                <label class="rng">Hide paths under <input id="minPct" type="range" min="0" max="20" step="0.5" value="5"><span id="minPctV">5%</span></label>
+                <div class="seg" id="fitSeg" title="Fit scales the whole flow to the visible screen height"><button data-f="fit" class="on">Fit</button><button data-f="actual">Actual size</button></div>
+                <button class="btn ghost" id="fullBtn">Expand</button>
+              </div>
+            </div>
+            <div class="ctrl" style="margin-bottom:6px">
+              <label class="rng">Reference flow <select id="refSel"><option value="happy">Happy flow from setup</option><option value="top">Most common sequence</option><option value="custom" disabled>Selected sequence</option></select></label>
+              <label class="chk"><input type="checkbox" id="postChk"> Include steps recorded after the end step</label>
+            </div>
+            <div id="mapWrap" class="map-wrap"></div>
+            <div id="refTxt" class="note" style="margin:8px 0 0"></div>
+            <div class="legend"><span><i style="background:var(--ink)"></i>Reference flow</span><span><i style="background:var(--skip)"></i>Skips ahead of the reference order (right)</span><span><i style="background:var(--alert)"></i>Recorded earlier than the reference order (left)</span><span><i style="background:var(--ink2)"></i>Other direct steps</span><span id="slowLeg" hidden><i style="background:var(--alertWash);height:10px;border:1px solid var(--alert)"></i>Three slowest transitions</span></div>
+            <p class="note">Each case becomes a sequence by sorting its step timestamps; an arrow means one step was directly followed by the next. Times on arrows are the gap between those two timestamps. Click a step, an arrow or a sequence to list its cases. Hover for details.</p>
+          </div>
+          <div class="card" id="selHint"><h2 style="margin:0 0 4px">Cases on a path</h2><p class="note" style="margin:0">Select a sequence on the right, or a step or arrow on the map, to list the cases behind it and open any of them in the lookup.</p></div>
+          <div class="card" id="selCard" hidden>
+            <div class="card-h"><h2 id="selTitle"></h2><div class="ctrl"><button class="btn ghost" id="selRef" hidden>Use as reference flow</button><button class="btn ghost" id="selCsv">Download list (.csv)</button><button class="btn ghost" id="selClear">Clear selection</button></div></div>
+            <div id="selBody"></div>
+          </div>
+        </div>
+        <aside class="card var-card">
+          <div class="card-h"><h2>Sequences by share</h2><span id="varCount" class="note" style="margin:0"></span></div>
+          <div class="ctrl" style="margin-bottom:8px"><div class="seg" id="vmodeSeg" title="Steps often run in parallel. Grouping by steps only ignores their order."><button data-v="seq" class="on">Exact order</button><button data-v="set">Steps only</button></div></div>
+          <div id="variants" class="variants"></div>
+        </aside>
+      </div>
+    </div>
+
+    <div id="tab-timing" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2 id="timingTitle">Each step measured from the start step</h2></div>
+        <div id="timing" class="chart-scroll"></div>
+        <p class="note">Box: middle half of cases; teal line: median; whisker: 75th to 90th percentile. Negative times mean the step was recorded before the start step.</p>
+        <div id="timingTbl" class="tbl-scroll" style="margin-top:10px"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-h"><h2>Last step before the end</h2></div><div id="last" class="chart-scroll"></div><p class="note">The step completed closest before the end step is the one that last held the case up, in timestamp terms. The wait shown is from that step to the end.</p></div>
+        <div class="card"><div class="card-h"><h2>Slowest transitions</h2><label class="rng">Min. cases <input id="edgeMin" type="number" class="num" min="1" value="5"></label></div><div id="edges" class="tbl-scroll"></div></div>
+      </div>
+      <div class="card" id="reasonsCard"><div class="card-h"><h2>Recorded delay reasons</h2><span class="note" style="margin:0">Click a reason to filter to those cases</span></div><div id="reasons" class="reasons"></div></div>
+    </div>
+
+    <!--@RISK_TAB@-->
+
+    <div id="tab-compare" class="tab" hidden>
+      <div class="card"><div class="card-h"><h2>Weekdays and weekends</h2><span id="wkNote" class="note" style="margin:0"></span></div><div id="wk" class="tbl-scroll"></div></div>
+      <div class="card">
+        <div class="card-h"><h2>Breakdown</h2>
+          <div class="ctrl"><label class="rng">Group by <select id="dim"></select></label><label class="rng">Min. cases <input id="minN" type="number" value="10" min="1" class="num"></label><button class="btn ghost" id="bdCsv">Download table (.csv)</button></div>
+        </div>
+        <p class="note" style="margin:0 0 8px">Click a column heading to sort, or a row to add it to the filters. Red: median more than 25% above the filtered median, for groups at or above the minimum size.</p>
+        <div id="breakdown" class="tbl-scroll"></div>
+      </div>
+    </div>
+
+    <div id="tab-time" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2>Day of week by hour</h2>
+          <div class="ctrl"><div class="seg" id="hmBasis"><button data-b="start" class="on">By start time</button><button data-b="end">By end time</button></div>
+          <div class="seg" id="hmMetric"><button data-m="n" class="on">Cases</button><button data-m="dur">Median duration</button><button data-m="happy">% reference flow</button></div></div>
+        </div>
+        <div id="heat" class="chart-scroll"></div>
+        <p class="note">Each case is counted once, in the cell for the day and hour of the chosen time. Median duration is in hours; cells with fewer than 3 cases with a value are grey. Times are read as recorded, to the minute.</p>
+      </div>
+      <div class="card"><div class="card-h"><h2>When cases start and end</h2></div><div id="hour" class="chart-scroll"></div></div>
+    </div>
+
+    <div id="tab-lookup" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2>Find a case and compare it with the reference flow</h2></div>
+        <div class="lookup-bar">
+          <input type="text" id="q" placeholder="Case ID" autocomplete="off">
+          <button class="btn primary" id="qBtn">Find</button>
+        </div>
+        <div id="lookupRes"><p class="empty-msg">Search covers the whole loaded file, not only the filtered view. Medians used for comparison come from the filtered cases.</p></div>
+      </div>
+    </div>
+
+    <div id="tab-findings" class="tab" hidden>
+      <div class="card"><div class="card-h"><h2>Findings</h2><span class="note" style="margin:0">Generated from the filtered cases; each statement is a calculation from the file</span></div><ul id="findings" class="ins"></ul></div>
+      <div class="card">
+        <div class="card-h"><h2>Recommendations</h2><div class="ctrl"><button class="btn ghost" id="draftBtn">Draft from findings</button></div></div>
+        <textarea id="recs" placeholder="Write the recommendations agreed or proposed. One per line. They are added to the slide export as their own slide."></textarea>
+        <p class="note">The draft only points at what the data shows (slowest step, most frequent last step, top delay reason, weekend gap, poorly recorded steps). Review and edit it with the teams before exporting.</p>
+      </div>
+      <div class="card"><div class="card-h"><h2>Data checks</h2></div><ul id="dq" class="ins"></ul><h3>Step columns as read from the file</h3><div id="colDiag" class="tbl-scroll"></div></div>
+    </div>
+  </section>
+</main>
+<footer class="foot">Proxy Process Explorer · open-source scaffold · <span id="verTxt">prototype</span> · no data leaves this page</footer>
+<div id="toast" role="status"></div>
+<script>/*@CORE@*/</script>
+<script>/*@UI@*/</script>
+</body>
+</html>

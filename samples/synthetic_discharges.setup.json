@@ -1,0 +1,119 @@
+{
+  "schema": "proxy-process-explorer/config@1",
+  "name": "Discharge process",
+  "terms": {
+    "case": "discharge",
+    "cases": "discharges"
+  },
+  "columns": {
+    "case_id": {
+      "role": "id",
+      "label": "Case ID"
+    },
+    "unit": {
+      "role": "attribute",
+      "label": "Unit",
+      "type": "cat",
+      "risk": true
+    },
+    "specialty": {
+      "role": "attribute",
+      "label": "Specialty",
+      "type": "cat",
+      "risk": true
+    },
+    "consultant": {
+      "role": "attribute",
+      "label": "Consultant",
+      "type": "cat",
+      "risk": false
+    },
+    "disposition": {
+      "role": "attribute",
+      "label": "Disposition",
+      "type": "cat",
+      "risk": true
+    },
+    "sex": {
+      "role": "attribute",
+      "label": "Sex",
+      "type": "cat",
+      "risk": false
+    },
+    "age": {
+      "role": "attribute",
+      "label": "Age",
+      "type": "num",
+      "risk": true
+    },
+    "expected_discharge_date": {
+      "role": "due",
+      "label": "Expected discharge date"
+    },
+    "discharge_order_at": {
+      "role": "step",
+      "label": "Discharge order"
+    },
+    "med_reconciliation_at": {
+      "role": "step",
+      "label": "Medicines reconciled"
+    },
+    "discharge_summary_at": {
+      "role": "step",
+      "label": "Discharge summary"
+    },
+    "pharmacy_ready_at": {
+      "role": "step",
+      "label": "Medicines ready"
+    },
+    "nursing_ready_at": {
+      "role": "step",
+      "label": "Nursing ready"
+    },
+    "transport_arranged_at": {
+      "role": "step",
+      "label": "Transport arranged"
+    },
+    "discharged_at": {
+      "role": "step",
+      "label": "Discharged"
+    },
+    "nursing_delay_reason": {
+      "role": "reason",
+      "label": "Nursing delay"
+    },
+    "pharmacy_delay_reason": {
+      "role": "reason",
+      "label": "Pharmacy delay"
+    },
+    "other_delay_reason": {
+      "role": "reason",
+      "label": "Other delay"
+    }
+  },
+  "stepOrder": [
+    "discharge_order_at",
+    "med_reconciliation_at",
+    "discharge_summary_at",
+    "pharmacy_ready_at",
+    "nursing_ready_at",
+    "transport_arranged_at",
+    "discharged_at"
+  ],
+  "happyFlow": [
+    "discharge_order_at",
+    "med_reconciliation_at",
+    "discharge_summary_at",
+    "pharmacy_ready_at",
+    "nursing_ready_at",
+    "discharged_at"
+  ],
+  "rules": [],
+  "settings": {
+    "weekend": [
+      6,
+      0
+    ],
+    "basis": "start"
+  }
+}

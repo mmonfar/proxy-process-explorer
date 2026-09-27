@@ -1,0 +1,1858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proxy Process Explorer</title>
+<style>/* Proxy Process Explorer: styles. Brand tokens from mmonfar; zero radius throughout. */
+:root{--canvas:#17242B;--cream:#FDFBF7;--white:#FFFFFF;--teal:#008080;--tealB:#00A3A3;
+  --ink:#17242B;--ink2:#6E7B80;--ink3:#B3BABD;--rule:#E3E5E4;--ruleM:#D3D7D8;--wash:rgba(0,128,128,.09);--t6:#E4EFEB;--t4:#ACD4D1;
+  --onDark2:#B9BEC0;--onDark3:#87908F;
+  /* non-brand semantic states, always paired with a text label */
+  --alert:#B74040;--alertWash:#F5E3E3;--skip:#C08A55;--skipWash:#F6EDE3;
+  --fD:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;--fL:'Space Grotesk','Segoe UI',system-ui,sans-serif}
+*{box-sizing:border-box;border-radius:0}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--cream);color:var(--ink);font:500 13px/1.5 var(--fD)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+::selection{background:var(--teal);color:var(--cream)}
+.lbl{font:500 11px/1.3 var(--fL);letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--canvas);color:var(--cream);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:18px}
+.mm-wordmark{font:800 20px/0.84 var(--fD);letter-spacing:-.05em;color:var(--cream);display:inline-flex;align-items:baseline;gap:.05em}
+.mm-dot{width:.16em;height:.16em;background:var(--teal);display:block;flex:0 0 auto}
+.brand .sep{width:1px;height:28px;background:rgba(253,251,247,.18)}
+.top h1{margin:0;font:800 17px/1.1 var(--fD);letter-spacing:-.02em}
+.top .sub{margin:3px 0 0;font:500 10.5px/1.3 var(--fL);letter-spacing:.14em;text-transform:uppercase;color:var(--onDark2)}
+.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.file{font-size:12px;color:var(--onDark2);max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:1px solid var(--ruleM);background:var(--white);color:var(--ink);cursor:pointer;font:500 11px/1 var(--fL);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.top .btn{border-color:rgba(253,251,247,.3);background:transparent;color:var(--cream)}
+.top .btn:hover{border-color:var(--cream)}
+.btn.primary,.top .btn.primary{background:var(--teal);border-color:var(--teal);color:var(--cream)}
+.btn.primary:hover{background:var(--tealB);border-color:var(--tealB)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{height:28px;padding:0 10px}
+.privacy{padding:5px 24px;background:var(--t6);color:var(--ink);font-size:11.5px;border-bottom:1px solid var(--rule)}
+main{padding:14px 24px 40px;max-width:1720px;margin:0 auto}
+
+/* empty state */
+.empty{max-width:860px;margin:36px auto;background:var(--white);border:1px dashed var(--ink3);padding:34px 40px}
+.empty.drag{border-color:var(--teal);background:var(--t6)}
+.empty h2{margin:6px 0 8px;font:800 24px/1.1 var(--fD);letter-spacing:-.03em}
+.empty p{margin:0 0 14px;max-width:70ch}
+.empty .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}
+.shape{margin-top:22px;border-top:1px solid var(--rule);padding-top:14px;font-size:12px;color:var(--ink2)}
+.shape table{border-collapse:collapse;margin:8px 0;font-size:11.5px}
+.shape td,.shape th{border:1px solid var(--rule);padding:3px 8px;text-align:left;white-space:nowrap}
+.shape th{font:500 10px/1.2 var(--fL);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:var(--cream)}
+.err{margin-top:14px;padding:10px 12px;border-left:3px solid var(--alert);background:var(--alertWash);color:var(--ink)}
+.okmsg{margin-top:10px;padding:8px 12px;border-left:3px solid var(--teal);background:var(--t6)}
+
+/* setup wizard */
+.wiz{background:var(--white);border:1px solid var(--rule);margin:8px auto 20px;max-width:1280px}
+.wiz-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 22px 0}
+.wiz-h h2{margin:4px 0 0;font:800 22px/1.1 var(--fD);letter-spacing:-.03em}
+.steps{display:flex;gap:0;border-bottom:1px solid var(--rule);margin:14px 22px 0;flex-wrap:wrap}
+.steps button{border:0;background:none;padding:10px 16px 9px;cursor:pointer;font:500 11px/1 var(--fL);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);border-bottom:2px solid transparent;margin-bottom:-1px}
+.steps button.on{color:var(--ink);border-bottom-color:var(--teal)}
+.steps button i{font-style:normal;color:var(--teal);margin-right:6px}
+.wiz-b{padding:16px 22px}
+.wiz-f{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 22px;border-top:1px solid var(--rule);background:var(--cream)}
+.wiz-f .grp{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.wiz p.lead{margin:0 0 12px;max-width:95ch}
+.terms{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-bottom:12px;font-size:12.5px}
+.terms label{display:flex;align-items:center;gap:6px}
+.terms input{height:28px;border:1px solid var(--ruleM);padding:0 8px;width:170px;background:var(--white)}
+.coltbl select,.coltbl input[type=text]{height:28px;border:1px solid var(--ruleM);background:var(--white);padding:0 6px;width:100%}
+.coltbl td{vertical-align:middle}
+.coltbl .samp{color:var(--ink2);font-size:11.5px;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;font:500 9.5px/1.4 var(--fL);letter-spacing:.1em;text-transform:uppercase;padding:1px 6px;border:1px solid var(--ink3);color:var(--ink2);margin-left:6px;white-space:nowrap}
+.badge.pii{border-color:var(--alert);color:var(--alert)}
+.badge.start,.badge.end{border-color:var(--teal);color:var(--teal)}
+.flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.flow-list{border:1px solid var(--rule)}
+.flow-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--rule);background:var(--white)}
+.flow-item:last-child{border-bottom:0}
+.flow-item.off{background:var(--cream);color:var(--ink2)}
+.flow-item .nm{flex:1;min-width:0}
+.flow-item .nm small{display:block;color:var(--ink2);font-size:11px}
+.flow-item .mv{display:flex;gap:4px}
+.flow-item .mv button{width:28px;height:26px;border:1px solid var(--ruleM);background:var(--white);cursor:pointer;padding:0}
+.flow-item .mv button:disabled{opacity:.3;cursor:default}
+.flow-prev{border:1px solid var(--rule);padding:14px;background:var(--cream)}
+.flow-prev ol{margin:6px 0 0;padding-left:20px}.flow-prev li{margin:3px 0}
+.issues{margin-top:10px}
+.issues .err,.issues .warn{margin:6px 0 0}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-bottom:8px}
+.fl{display:flex;flex-direction:column;font:500 10px/1.2 var(--fL);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);gap:4px;position:relative}
+.ms-btn{height:30px;min-width:150px;max-width:230px;border:1px solid var(--ruleM);background:var(--white);padding:0 26px 0 8px;color:var(--ink);text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;font:500 12.5px/1 var(--fD);letter-spacing:0;text-transform:none}
+.ms-btn::after{content:"";position:absolute;right:10px;top:12px;border:4px solid transparent;border-top-color:var(--ink2)}
+.ms-btn.on{border-color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal);font-weight:700}
+.pop{position:absolute;top:100%;left:0;z-index:20;margin-top:4px;background:var(--white);border:1px solid var(--ink3);padding:8px;width:300px;color:var(--ink);font:500 12px/1.4 var(--fD);letter-spacing:0;text-transform:none}
+.pop input[type=text]{width:100%;height:28px;border:1px solid var(--ruleM);padding:0 8px;margin-bottom:6px}
+.ms-list{max-height:260px;overflow:auto}
+.ms-list label{display:flex;align-items:center;gap:7px;padding:3px 4px;cursor:pointer}
+.ms-list label:hover{background:var(--wash)}
+.ms-list input,.chk input{accent-color:var(--teal)}
+.ms-list em{margin-left:auto;font-style:normal;color:var(--ink2);font-size:11px}
+.ms-list span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop-f{display:flex;gap:6px;justify-content:space-between;margin-top:6px;border-top:1px solid var(--rule);padding-top:6px}
+.fbar-r{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+#more:not([hidden]){display:contents}
+.chipsrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-2px 0 8px;font-size:12px}
+.chipsrow:empty{display:none}
+.fchip{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;background:var(--ink);color:var(--cream)}
+.fchip button{border:0;background:rgba(253,251,247,.18);color:var(--cream);padding:0 7px;cursor:pointer}
+.join{color:var(--ink2);font-weight:700}
+.warn{margin-bottom:12px;padding:8px 12px;background:var(--skipWash);border-left:3px solid var(--skip);font-size:12px;color:var(--ink)}
+.warn ul{margin:4px 0 0;padding-left:18px}
+
+/* KPIs and tabs */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--white);border:1px solid var(--rule);margin-bottom:10px}
+.kpi{padding:9px 14px;border-left:1px solid var(--rule)}
+.kpi:first-child{border-left:0;background:var(--canvas);color:var(--cream)}
+.kpi b{display:block;font:800 22px/1.15 var(--fD);letter-spacing:-.03em;color:var(--ink)}
+.kpi:first-child b{color:var(--cream)}
+.kpi span{display:block;font:500 10px/1.3 var(--fL);letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-top:2px}
+.kpi small{display:block;font-size:11px;color:var(--ink2)}
+.kpi:first-child small{color:var(--onDark2)}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--rule);margin-bottom:12px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:9px 16px;cursor:pointer;color:var(--ink2);font:500 11px/1 var(--fL);letter-spacing:.13em;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--teal)}
+
+/* cards and controls */
+.card{background:var(--white);border:1px solid var(--rule);padding:14px 16px;margin-bottom:14px;min-width:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.card h2{margin:0;font:500 11px/1.3 var(--fL);letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+.card h3{margin:14px 0 6px;font:700 13.5px/1.3 var(--fD);color:var(--ink)}
+.ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--ruleM);overflow:hidden}
+.seg button{border:0;background:var(--white);padding:4px 10px;cursor:pointer;font-size:12px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button.on{background:var(--ink);color:var(--cream)}
+.seg button:disabled{color:var(--ink3);cursor:not-allowed}
+.rng,.chk{display:inline-flex;align-items:center;gap:6px;color:var(--ink2)}
+.rng input[type=range]{width:110px;accent-color:var(--teal)}
+.rng select,.num,.inp{height:28px;border:1px solid var(--ruleM);background:var(--white);padding:0 6px;color:var(--ink)}
+.num{width:64px}
+.grid-proc{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+.grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.map-wrap{overflow:auto;border:1px solid var(--rule)}
+.map-wrap svg{display:block;margin:0 auto}
+.chart-scroll svg{display:block;max-width:100%;height:auto}
+.chart-scroll{overflow-x:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:11.5px;color:var(--ink2)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+.note{font-size:11.5px;color:var(--ink2);margin:8px 0 0;max-width:120ch}
+.var-card{display:flex;flex-direction:column;max-height:780px}
+.variants{overflow-y:auto;margin:0 -6px;padding:0 6px}
+.var{display:block;width:100%;text-align:left;background:var(--white);border:1px solid var(--rule);padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.var:hover{border-color:var(--ink3)}
+.var.on{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--teal)}
+.var.ref{background:var(--t6)}
+.var-top{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--ink2)}
+.var-pct{font:800 15px/1 var(--fD);color:var(--ink)}
+.var-t{margin-left:auto}
+.bar{height:4px;background:var(--t6);margin:5px 0 6px}
+.bar i{display:block;height:100%;background:var(--teal)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:10.5px;padding:1px 7px;border:1px solid;white-space:nowrap}
+.chip.ref{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.chip.order{background:var(--skipWash);border-color:var(--skip);color:var(--ink)}
+.chip.miss{background:var(--alertWash);border-color:var(--alert);color:var(--ink)}
+.chip.extra{background:var(--cream);border-color:var(--ink3);color:var(--ink)}
+.seqline{font-size:10.5px;color:var(--ink2);margin-top:5px;line-height:1.35}
+.tbl-scroll{overflow:auto;max-height:520px}
+table.t{border-collapse:collapse;width:100%;font-size:12px}
+.t th{position:sticky;top:0;background:var(--ink);color:var(--cream);font:500 10px/1.3 var(--fL);letter-spacing:.1em;text-transform:uppercase;text-align:right;padding:7px 8px;white-space:nowrap;z-index:1}
+.t th.s{cursor:pointer}
+.t th:first-child,.t td:first-child{text-align:left}
+.t td{padding:5px 8px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+.t tr:nth-child(even) td{background:var(--cream)}
+.t td.l,.t th.l{text-align:left}
+.t td.wrap{white-space:normal;min-width:180px}
+.t tfoot td{font-weight:700;border-top:2px solid var(--ink);background:var(--white)}
+.t tr.click{cursor:pointer}.t tr.click:hover td{background:var(--wash)}
+.t td.hi{color:var(--alert);font-weight:700}
+.link{border:0;background:none;padding:0;color:var(--teal);text-decoration:underline;cursor:pointer}
+.sel-stats{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:10px;font-size:12px}
+.sel-stats b{color:var(--ink);font-size:14px}
+.reasons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+ul.ins{margin:0;padding-left:18px}ul.ins li{margin-bottom:7px;max-width:110ch}
+textarea{width:100%;min-height:180px;border:1px solid var(--ruleM);padding:10px;line-height:1.5;resize:vertical;background:var(--white)}
+.lookup-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.lookup-bar input[type=text]{height:32px;width:260px;border:1px solid var(--ruleM);padding:0 10px}
+.enc{border:1px solid var(--rule);padding:12px 14px;margin-bottom:12px}
+.enc-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-bottom:8px}
+.enc-h b{font-size:14px;color:var(--ink)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 16px;font-size:12px;margin-bottom:10px}
+.facts span{color:var(--ink2)}
+.empty-msg{color:var(--ink2)}
+.set-pop{width:340px}
+.set-pop h4{margin:4px 0 6px;font:500 10px/1.3 var(--fL);letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+.days{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.days label{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--ruleM);padding:2px 6px;cursor:pointer}
+.map-card.full{position:fixed;inset:10px;z-index:25;margin:0;overflow:auto;border-color:var(--ink)}
+.map-card{padding:10px 14px}
+.map-card .card-h{margin-bottom:6px}
+.map-card.full .legend,.map-card.full .note{display:none}
+body.noscroll{overflow:hidden}
+.defs{display:flex;flex-wrap:wrap;gap:12px 28px;font-size:12.5px;color:var(--ink);align-items:center}
+.defs label{display:flex;align-items:center;gap:6px}
+.defs select{height:28px;border:1px solid var(--ruleM);background:var(--white);padding:0 6px}
+.t td.sig{font-weight:700}.t td.neg{color:var(--alert)}.t td.pos{color:var(--teal)}
+.seg-box{margin-top:12px;padding:12px 14px;background:var(--t6);display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:12.5px}
+.seg-box b{color:var(--ink);font-size:15px}
+.grid-var{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:18px;align-items:start}
+.clin-card{border:1px solid var(--rule);padding:12px;margin-bottom:10px;font-size:12.5px}
+.clin-card b.big{display:block;font:800 22px/1.2 var(--fD);color:var(--ink)}
+.tgt-head{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:10px;font-size:12.5px}
+.tgt-head b{font:800 18px/1 var(--fD);color:var(--ink);margin-right:4px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--cream);padding:9px 16px;font-size:12.5px;display:none;max-width:80vw;z-index:30}
+#toast.err{background:var(--alert)}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none}
+footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;color:var(--ink2)}
+@media (max-width:1150px){.grid-proc,.grid-2,.reasons,.grid-var,.flow{grid-template-columns:1fr}.var-card{max-height:none}.kpis{grid-template-columns:repeat(3,1fr)}.kpi:nth-child(4){border-left:0}}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}main{padding:14px 16px}.top{padding:12px 16px}.empty{padding:22px 18px}.brand .sep,.brand .mm-wordmark{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="mm-wordmark" role="img" aria-label="mmonfar">mmonfar<i class="mm-dot"></i></div>
+    <span class="sep" aria-hidden="true"></span>
+    <div>
+      <h1>Proxy process explorer</h1>
+      <p class="sub" id="subTitle">Step timestamps in, process view out · runs offline in this browser</p>
+    </div>
+  </div>
+  <div class="actions">
+    <span id="fileName" class="file"></span>
+    <button id="setupBtn" class="btn" hidden>Setup</button>
+    <label class="btn" for="file" tabindex="0" id="loadLbl">Load file</label>
+    <input id="file" type="file" accept=".xlsx,.csv" class="vh" tabindex="-1">
+    <input id="cfgFile" type="file" accept=".json,application/json" class="vh" tabindex="-1">
+    <button id="exportBtn" class="btn primary" disabled>Export slides (.pptx)</button>
+  </div>
+</header>
+<div class="privacy">Runs only in this browser. The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.</div>
+<main>
+  <section id="empty" class="empty">
+    <div class="lbl">Prototype · synthetic sample included</div>
+    <h2>See how cases move through a process</h2>
+    <p>Load a spreadsheet with one row per case and one timestamp column per step. A short setup asks which column is which, what the happy flow looks like, which rules apply and which variables matter. Everything else is calculated from the timestamps.</p>
+    <div class="row">
+      <label class="btn primary" for="file">Choose a .csv or .xlsx file</label>
+      <button class="btn" id="sampleBtn">Try the synthetic sample</button>
+      <label class="btn ghost" for="cfgFile" tabindex="0" id="cfgLbl">Import a saved setup (.json)</label>
+    </div>
+    <div id="cfgNote"></div>
+    <div id="loadErr"><div class="err" id="scriptBlocked">This viewer is blocking the page's scripts, so files can't be loaded here. Download the .html file and open it directly in a current browser.</div></div>
+    <div class="shape">
+      <div class="lbl">Expected shape</div>
+      <table>
+        <tr><th>case_id</th><th>unit</th><th>step_a_at</th><th>step_b_at</th><th>…</th><th>finished_at</th><th>delay_reason</th></tr>
+        <tr><td>C-001</td><td>Unit A</td><td>2026-03-02 09:10</td><td>2026-03-02 10:05</td><td>…</td><td>2026-03-02 13:40</td><td>Awaiting transport</td></tr>
+      </table>
+      Column names are free. Dates can be spreadsheet dates or text such as 2026-03-02 09:10, 02/03/2026 9:10 or 2 Mar 2026 09:10. The header row can sit below report titles. Columns that look like personal data (names, dates of birth, record numbers, contact details) are ignored unless you choose otherwise.
+    </div>
+  </section>
+
+  <section id="wiz" class="wiz" hidden>
+    <div class="wiz-h">
+      <div><div class="lbl">Setup</div><h2 id="wizTitle">Columns</h2></div>
+      <div class="note" id="wizFile" style="margin:0"></div>
+    </div>
+    <nav class="steps" id="wizSteps"></nav>
+    <div class="wiz-b" id="wizBody"></div>
+    <div class="wiz-f">
+      <div class="grp"><button class="btn" id="wizBack">Back</button><button class="btn primary" id="wizNext">Next</button></div>
+      <div class="grp"><button class="btn ghost" id="cfgExport">Export setup (.json)</button><label class="btn ghost" for="cfgFile" tabindex="0">Import setup</label><button class="btn ghost" id="wizCancel" hidden>Cancel</button></div>
+    </div>
+  </section>
+
+  <section id="app" hidden>
+    <div class="filters" id="filters">
+      <div id="fPrimary" style="display:contents"></div>
+      <div id="more" hidden></div>
+      <div class="fbar-r">
+        <button class="btn ghost" id="moreBtn">More filters</button>
+        <div class="seg" id="combSeg" title="How selections in different filters combine. Values within one filter always combine with OR."><button data-c="and" class="on">Match all</button><button data-c="or">Match any</button></div>
+        <button class="btn ghost" id="clearF">Clear filters</button>
+        <div class="fl"><button class="btn ghost" id="setBtn">Settings</button>
+          <div class="pop set-pop" id="setPop" hidden style="left:auto;right:0">
+            <h4>Weekend days</h4><div class="days" id="wkDays"></div>
+            <h4>Day and hour are taken from</h4>
+            <div class="seg" id="basisSeg"><button data-b="start" class="on">Start step</button><button data-b="end">End step</button></div>
+            <p class="note">Weekend defaults to Saturday and Sunday. Used by weekday and weekend comparisons, the day filters and the findings.</p>
+          </div></div>
+      </div>
+    </div>
+    <div id="fchips" class="chipsrow"></div>
+    <div id="warn" class="warn" hidden></div>
+    <div class="kpis" id="kpis"></div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button class="on" data-tab="process">Process map</button>
+      <button data-tab="timing">Timing and delays</button>
+            <button data-tab="compare">Groups and days</button>
+      <button data-tab="time">Time of day</button>
+      <button data-tab="lookup">Case lookup</button>
+      <button data-tab="findings">Findings</button>
+    </nav>
+
+    <div id="tab-process" class="tab">
+      <div class="grid-proc">
+        <div>
+          <div class="card map-card" id="mapCard">
+            <div class="card-h">
+              <h2>Process map</h2>
+              <div class="ctrl">
+                <div class="seg" id="metricSeg"><button data-m="freq" class="on">Share of cases</button><button data-m="med">Median time</button><button data-m="mean">Mean time</button></div>
+                <label class="rng">Hide paths under <input id="minPct" type="range" min="0" max="20" step="0.5" value="5"><span id="minPctV">5%</span></label>
+                <div class="seg" id="fitSeg" title="Fit scales the whole flow to the visible screen height"><button data-f="fit" class="on">Fit</button><button data-f="actual">Actual size</button></div>
+                <button class="btn ghost" id="fullBtn">Expand</button>
+              </div>
+            </div>
+            <div class="ctrl" style="margin-bottom:6px">
+              <label class="rng">Reference flow <select id="refSel"><option value="happy">Happy flow from setup</option><option value="top">Most common sequence</option><option value="custom" disabled>Selected sequence</option></select></label>
+              <label class="chk"><input type="checkbox" id="postChk"> Include steps recorded after the end step</label>
+            </div>
+            <div id="mapWrap" class="map-wrap"></div>
+            <div id="refTxt" class="note" style="margin:8px 0 0"></div>
+            <div class="legend"><span><i style="background:var(--ink)"></i>Reference flow</span><span><i style="background:var(--skip)"></i>Skips ahead of the reference order (right)</span><span><i style="background:var(--alert)"></i>Recorded earlier than the reference order (left)</span><span><i style="background:var(--ink2)"></i>Other direct steps</span><span id="slowLeg" hidden><i style="background:var(--alertWash);height:10px;border:1px solid var(--alert)"></i>Three slowest transitions</span></div>
+            <p class="note">Each case becomes a sequence by sorting its step timestamps; an arrow means one step was directly followed by the next. Times on arrows are the gap between those two timestamps. Click a step, an arrow or a sequence to list its cases. Hover for details.</p>
+          </div>
+          <div class="card" id="selHint"><h2 style="margin:0 0 4px">Cases on a path</h2><p class="note" style="margin:0">Select a sequence on the right, or a step or arrow on the map, to list the cases behind it and open any of them in the lookup.</p></div>
+          <div class="card" id="selCard" hidden>
+            <div class="card-h"><h2 id="selTitle"></h2><div class="ctrl"><button class="btn ghost" id="selRef" hidden>Use as reference flow</button><button class="btn ghost" id="selCsv">Download list (.csv)</button><button class="btn ghost" id="selClear">Clear selection</button></div></div>
+            <div id="selBody"></div>
+          </div>
+        </div>
+        <aside class="card var-card">
+          <div class="card-h"><h2>Sequences by share</h2><span id="varCount" class="note" style="margin:0"></span></div>
+          <div class="ctrl" style="margin-bottom:8px"><div class="seg" id="vmodeSeg" title="Steps often run in parallel. Grouping by steps only ignores their order."><button data-v="seq" class="on">Exact order</button><button data-v="set">Steps only</button></div></div>
+          <div id="variants" class="variants"></div>
+        </aside>
+      </div>
+    </div>
+
+    <div id="tab-timing" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2 id="timingTitle">Each step measured from the start step</h2></div>
+        <div id="timing" class="chart-scroll"></div>
+        <p class="note">Box: middle half of cases; teal line: median; whisker: 75th to 90th percentile. Negative times mean the step was recorded before the start step.</p>
+        <div id="timingTbl" class="tbl-scroll" style="margin-top:10px"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-h"><h2>Last step before the end</h2></div><div id="last" class="chart-scroll"></div><p class="note">The step completed closest before the end step is the one that last held the case up, in timestamp terms. The wait shown is from that step to the end.</p></div>
+        <div class="card"><div class="card-h"><h2>Slowest transitions</h2><label class="rng">Min. cases <input id="edgeMin" type="number" class="num" min="1" value="5"></label></div><div id="edges" class="tbl-scroll"></div></div>
+      </div>
+      <div class="card" id="reasonsCard"><div class="card-h"><h2>Recorded delay reasons</h2><span class="note" style="margin:0">Click a reason to filter to those cases</span></div><div id="reasons" class="reasons"></div></div>
+    </div>
+
+    
+    <div id="tab-compare" class="tab" hidden>
+      <div class="card"><div class="card-h"><h2>Weekdays and weekends</h2><span id="wkNote" class="note" style="margin:0"></span></div><div id="wk" class="tbl-scroll"></div></div>
+      <div class="card">
+        <div class="card-h"><h2>Breakdown</h2>
+          <div class="ctrl"><label class="rng">Group by <select id="dim"></select></label><label class="rng">Min. cases <input id="minN" type="number" value="10" min="1" class="num"></label><button class="btn ghost" id="bdCsv">Download table (.csv)</button></div>
+        </div>
+        <p class="note" style="margin:0 0 8px">Click a column heading to sort, or a row to add it to the filters. Red: median more than 25% above the filtered median, for groups at or above the minimum size.</p>
+        <div id="breakdown" class="tbl-scroll"></div>
+      </div>
+    </div>
+
+    <div id="tab-time" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2>Day of week by hour</h2>
+          <div class="ctrl"><div class="seg" id="hmBasis"><button data-b="start" class="on">By start time</button><button data-b="end">By end time</button></div>
+          <div class="seg" id="hmMetric"><button data-m="n" class="on">Cases</button><button data-m="dur">Median duration</button><button data-m="happy">% reference flow</button></div></div>
+        </div>
+        <div id="heat" class="chart-scroll"></div>
+        <p class="note">Each case is counted once, in the cell for the day and hour of the chosen time. Median duration is in hours; cells with fewer than 3 cases with a value are grey. Times are read as recorded, to the minute.</p>
+      </div>
+      <div class="card"><div class="card-h"><h2>When cases start and end</h2></div><div id="hour" class="chart-scroll"></div></div>
+    </div>
+
+    <div id="tab-lookup" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2>Find a case and compare it with the reference flow</h2></div>
+        <div class="lookup-bar">
+          <input type="text" id="q" placeholder="Case ID" autocomplete="off">
+          <button class="btn primary" id="qBtn">Find</button>
+        </div>
+        <div id="lookupRes"><p class="empty-msg">Search covers the whole loaded file, not only the filtered view. Medians used for comparison come from the filtered cases.</p></div>
+      </div>
+    </div>
+
+    <div id="tab-findings" class="tab" hidden>
+      <div class="card"><div class="card-h"><h2>Findings</h2><span class="note" style="margin:0">Generated from the filtered cases; each statement is a calculation from the file</span></div><ul id="findings" class="ins"></ul></div>
+      <div class="card">
+        <div class="card-h"><h2>Recommendations</h2><div class="ctrl"><button class="btn ghost" id="draftBtn">Draft from findings</button></div></div>
+        <textarea id="recs" placeholder="Write the recommendations agreed or proposed. One per line. They are added to the slide export as their own slide."></textarea>
+        <p class="note">The draft only points at what the data shows (slowest step, most frequent last step, top delay reason, weekend gap, poorly recorded steps). Review and edit it with the teams before exporting.</p>
+      </div>
+      <div class="card"><div class="card-h"><h2>Data checks</h2></div><ul id="dq" class="ins"></ul><h3>Step columns as read from the file</h3><div id="colDiag" class="tbl-scroll"></div></div>
+    </div>
+  </section>
+</main>
+<footer class="foot">Proxy Process Explorer · open-source scaffold · <span id="verTxt">prototype</span> · no data leaves this page</footer>
+<div id="toast" role="status"></div>
+<script>'use strict';
+/* =====================================================================
+   Proxy Process Explorer: core
+   Pure functions: no DOM, no network. Loaded by the page and by the Node tests.
+   ===================================================================== */
+
+/* ---------- palette ----------
+   Brand tokens (mmonfar): deep slate, warm cream, teal and opacities of teal. */
+const PAL = { ink:'#17242B', ink2:'#6E7B80', ink3:'#B3BABD', rule:'#E3E5E4', cream:'#FDFBF7', white:'#FFFFFF',
+  teal:'#008080', tealB:'#00A3A3', t2:'#60AFAD', t3:'#89C2C0', t4:'#ACD4D1', t5:'#BBDBD8', t6:'#E4EFEB' };
+/* Non-brand semantic constants. They mark a state (a breach, a step recorded out of order) and are
+   always paired with a text label, so colour is never the only signal. */
+const SEM = { alert:'#B74040', alertWash:'#F5E3E3', skip:'#C08A55' };
+const FONT = "'Space Grotesk','Segoe UI',system-ui,sans-serif";
+
+/* ---------- small helpers ---------- */
+const XML_ENT = { '&amp;':'&', '&lt;':'<', '&gt;':'>', '&quot;':'"', '&apos;':"'" };
+function xmlDecode(s){ return s.replace(/&(amp|lt|gt|quot|apos|#x[0-9a-fA-F]+|#\d+);/g,(m,g)=>{
+  if(g[0]==='#') return String.fromCodePoint(g[1]==='x'||g[1]==='X'?parseInt(g.slice(2),16):parseInt(g.slice(1),10));
+  return XML_ENT[m]; }); }
+function unesc(s){ return xmlDecode(s).replace(/_x([0-9A-Fa-f]{4})_/g,(m,h)=>String.fromCharCode(parseInt(h,16))); }
+function xmlEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,''); }
+function attrs(tag){ const o={}; tag.replace(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,(m,k,v1,v2)=>{ o[k]=xmlDecode(v1!=null?v1:v2); return m; }); return o; }
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(k){ if(!k||k==='Unknown') return 'Unknown'; const [y,m]=k.split('-'); return MON[+m-1]+' '+y; }
+const p2=n=>String(n).padStart(2,'0');
+function fmtDT(d){ if(!d) return '–'; return `${p2(d.getUTCDate())} ${MON[d.getUTCMonth()]} ${d.getUTCFullYear()} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`; }
+function fmtD(d){ if(!d) return '–'; return `${p2(d.getUTCDate())} ${MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`; }
+function fmtMin(m){ if(m==null||isNaN(m)) return '–'; const neg=m<0, a=Math.abs(m); let t;
+  if(a<60) t=Math.round(a)+' min'; else if(a<48*60) t=(a/60).toFixed(1)+' h'; else t=(a/1440).toFixed(1)+' d';
+  return (neg?'−':'')+t; }
+function pctS(p){ return p==null||isNaN(p)?'–':(p*100).toFixed(p<0.1&&p>0?1:0)+'%'; }
+function hhmm(h,m){ return p2(h)+':'+p2(m||0); }
+const mins=(a,b)=>(a&&b)?(a-b)/6e4:null;
+const dayKey=d=>d?Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()):null;
+function quant(s,p){ if(!s.length) return null; const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); }
+function dist(a){ const s=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y);
+  return {n:s.length,med:quant(s,.5),p25:quant(s,.25),p75:quant(s,.75),p90:quant(s,.9),mean:s.length?s.reduce((x,y)=>x+y,0)/s.length:null,min:s[0],max:s[s.length-1]}; }
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY_ORDER=[1,2,3,4,5,6,0];
+
+/* =====================================================================
+   ZIP reading (native DecompressionStream)
+   ===================================================================== */
+async function inflateRaw(u8){
+  if(typeof DecompressionStream==='undefined') throw new Error('This browser cannot decompress .xlsx files. Use a current version of Edge, Chrome or Firefox, or save the file as .csv.');
+  const stream=new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+function openZip(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
+  let e=-1;
+  for(let i=u8.length-22;i>=Math.max(0,u8.length-65557);i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+  if(e<0) throw new Error('The file is not a valid .xlsx workbook.');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true);
+  const td=new TextDecoder(), files={};
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) throw new Error('The workbook structure is damaged (zip directory).');
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true),
+          xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    files[td.decode(u8.subarray(p+46,p+46+nl))]={method,csize,lo};
+    p+=46+nl+xl+cl;
+  }
+  return {
+    names:Object.keys(files),
+    async text(nm){
+      const f=files[nm]||files[Object.keys(files).find(k=>k.toLowerCase()===nm.toLowerCase())];
+      if(!f) return null;
+      const start=f.lo+30+dv.getUint16(f.lo+26,true)+dv.getUint16(f.lo+28,true);
+      const raw=u8.subarray(start,start+f.csize);
+      let out;
+      if(f.method===0) out=raw; else if(f.method===8) out=await inflateRaw(raw);
+      else throw new Error('Unsupported compression in workbook ('+f.method+').');
+      return td.decode(out);
+    }
+  };
+}
+
+/* =====================================================================
+   XLSX / CSV parsing
+   ===================================================================== */
+function siText(x){ x=x.replace(/<rPh\b[\s\S]*?<\/rPh>/g,''); let out='',m; const re=/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g; while((m=re.exec(x))) out+=m[1]; return unesc(out); }
+function colIdx(ref){ const L=(ref.match(/^[A-Z]+/i)||['A'])[0].toUpperCase(); let n=0; for(const ch of L) n=n*26+(ch.charCodeAt(0)-64); return n-1; }
+function parseSheet(xml,sst,maxRows){
+  const rows=[]; const rre=/<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g; let rm;
+  while((rm=rre.exec(xml))){
+    const inner=rm[1], row=[];
+    if(inner){
+      const cre=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g; let cm, auto=0;
+      while((cm=cre.exec(inner))){
+        const a=attrs(cm[1]); const ci=a.r?colIdx(a.r):auto; auto=ci+1;
+        const body=cm[2]||'', t=a.t||'n'; let v=null;
+        if(t==='inlineStr') v=siText(body);
+        else { const vm=body.match(/<v>([\s\S]*?)<\/v>/);
+          if(vm){ const raw=vm[1];
+            if(t==='s') v=sst[+raw]!=null?sst[+raw]:'';
+            else if(t==='b') v=raw==='1';
+            else if(t==='str'||t==='e'||t==='d') v=unesc(raw);
+            else { const num=Number(raw); v=isNaN(num)?unesc(raw):num; } } }
+        row[ci]=v;
+      }
+    }
+    rows.push(row); if(maxRows&&rows.length>=maxRows) break;
+  }
+  return rows;
+}
+async function readXlsxRows(buf){
+  const z=openZip(buf);
+  const wb=await z.text('xl/workbook.xml'); if(!wb) throw new Error('No workbook found inside the file. Is it an .xlsx file?');
+  const rels=(await z.text('xl/_rels/workbook.xml.rels'))||'';
+  const relMap={}; (rels.match(/<Relationship\b[^>]*>/g)||[]).forEach(t=>{ const a=attrs(t); relMap[a.Id]=a.Target; });
+  const sheets=(wb.match(/<sheet\b[^>]*>/g)||[]).map(t=>{ const a=attrs(t); const rk=Object.keys(a).find(k=>/(^|:)id$/.test(k));
+    let tg=relMap[a[rk]]||''; tg=tg.startsWith('/')?tg.slice(1):'xl/'+tg.replace(/^\.\//,''); return {name:a.name,path:tg}; });
+  const sstXml=await z.text('xl/sharedStrings.xml'); const sst=[];
+  if(sstXml){ const re=/<si>([\s\S]*?)<\/si>|<si\/>/g; let m; while((m=re.exec(sstXml))) sst.push(m[1]?siText(m[1]):''); }
+  let best=null;
+  for(const sh of sheets){ const xml=await z.text(sh.path); if(!xml) continue;
+    const h=findHeader(parseSheet(xml,sst,40)); if(!best||h.score>best.h.score) best={sh,xml,h}; }
+  if(!best) throw new Error('No worksheets could be read from the workbook.');
+  return { rows:parseSheet(best.xml,sst), sheet:best.sh.name };
+}
+function parseCsv(text){
+  text=text.replace(/^﻿/,''); const first=text.split(/\r?\n/,1)[0];
+  const d=[',',';','\t'].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+  const rows=[]; let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true; else if(c===d){ row.push(f); f=''; }
+    else if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; } else if(c!=='\r') f+=c; }
+  if(f!==''||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+
+/* =====================================================================
+   Dates and values
+   ===================================================================== */
+function mkD(y,mo,d,h,mi,ap){ y=+y; if(y<100) y+=2000; h=+(h||0); mi=+(mi||0);
+  if(ap){ const pm=ap.toUpperCase().startsWith('P'); if(pm&&h<12) h+=12; if(!pm&&h===12) h=0; }
+  if(!(mo>=0&&mo<12)||!(d>=1&&d<=31)||h>23||mi>59) return null;
+  const x=new Date(Date.UTC(y,mo,+d,h,mi)); return isNaN(x)?null:x; }
+const MONFULL=['january','february','march','april','may','june','july','august','september','october','november','december'];
+const monIdx=t=>{ t=t.toLowerCase(); return MONFULL.findIndex(m=>m.startsWith(t.slice(0,3))); };
+// All times are kept to the minute (seconds dropped, as spreadsheets show hh:mm).
+// Times are read as written (wall-clock), stored in UTC fields so no time zone shifts them.
+function toDate(v,dayFirst){
+  if(v==null||v==='') return null;
+  if(v instanceof Date) return isNaN(v)?null:new Date(Math.floor(v.getTime()/6e4)*6e4);
+  if(typeof v==='number'){ return (v>20000&&v<80000)? new Date(Math.floor(Math.round((v-25569)*864e5)/6e4)*6e4) : null; }
+  const s=String(v).trim().replace(/ /g,' ').replace(/\s+/g,' '); let m;
+  const T='(?:[T ,]+(\\d{1,2})[:.](\\d{2})(?:[:.]\\d{2}(?:[.,]\\d+)?)?\\s*([AaPp]\\.?[Mm]\\.?)?)?(?:Z|[+-]\\d{2}:?\\d{2})?';
+  if(/^\d{5}([.,]\d+)?$/.test(s)) return toDate(parseFloat(s.replace(',','.')));                           // spreadsheet serial saved as text
+  if((m=s.match(new RegExp('^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})'+T+'$'))))                             // 2026-06-01 08:15
+    return mkD(m[1],m[2]-1,m[3],m[4],m[5],m[6]);
+  if((m=s.match(new RegExp('^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{2,4})'+T+'$')))){                          // 01/06/2026 8:15 AM
+    let a=+m[1],b=+m[2],d,mo; if(a>12){d=a;mo=b;} else if(b>12){mo=a;d=b;} else if(dayFirst!==false){d=a;mo=b;} else {mo=a;d=b;}
+    return mkD(m[3],mo-1,d,m[4],m[5],m[6]); }
+  if((m=s.match(new RegExp('^(\\d{1,2})[- ]([A-Za-z]{3,9})\\.?[- ,]+(\\d{2,4})'+T+'$'))))                    // 01-Jun-2026 08:15
+    return mkD(m[3],monIdx(m[2]),m[1],m[4],m[5],m[6]);
+  if((m=s.match(new RegExp('^(?:[A-Za-z]{3,9},? )?([A-Za-z]{3,9})\\.? (\\d{1,2}),? (\\d{4})'+T+'$'))))         // Jun 1 2026 8:15AM
+    return mkD(m[3],monIdx(m[1]),m[2],m[4],m[5],m[6]);
+  return null;
+}
+function str(v){ if(v==null) return ''; if(v instanceof Date) return fmtDT(v); return String(v).trim(); }
+const nonEmpty=v=>v!=null&&String(v).trim()!=='';
+function detectDayFirst(values){
+  let df=0,mf=0,amb=0;
+  for(const v of values){ if(typeof v!=='string') continue;
+    const m=v.trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-]\d{2,4}/); if(!m) continue;
+    if(+m[1]>12) df++; else if(+m[2]>12) mf++; else amb++; }
+  return { dayFirst: mf>df?false:true, ambiguousOnly: amb>0&&!df&&!mf, conflict: df>0&&mf>0 };
+}
+
+/* =====================================================================
+   Table: header detection and column profiling (feeds the setup wizard)
+   ===================================================================== */
+const looksNum=v=>typeof v==='number'||(typeof v==='string'&&/^-?\d+([.,]\d+)?$/.test(v.trim()));
+// The header row is the row (in the first 40) with the most text cells that are neither numbers nor dates.
+function findHeader(rows){
+  let best={idx:-1,score:0};
+  for(let i=0;i<Math.min(40,rows.length);i++){ const r=rows[i]||[]; let sc=0;
+    for(const v of r){ if(typeof v==='string'&&v.trim()&&!looksNum(v)&&!toDate(v)) sc++; }
+    if(sc>best.score&&(rows[i+1]||[]).some(nonEmpty)) best={idx:i,score:sc}; }
+  return best;
+}
+function toTable(rows,sheet){
+  const h=findHeader(rows);
+  if(h.idx<0||h.score<2) throw new Error('No header row was found. The first rows of the file should hold one column name per column.');
+  const seen={}, header=(rows[h.idx]||[]).map((v,i)=>{ let n=str(v)||`Column ${i+1}`; if(seen[n]) n+=` (${++seen[n]})`; else seen[n]=1; return n; });
+  const data=rows.slice(h.idx+1).filter(r=>r&&r.some(nonEmpty));
+  return {header,data,headerRow:h.idx+1,sheet:sheet||''};
+}
+/* Personal data: columns whose names suggest a direct identifier are ignored by default, so a
+   file with names or record numbers can still be explored without them entering the analysis. */
+const PII_TOKENS=new Set(['surname','firstname','lastname','fullname','patientname','forename','dob','birthdate','dateofbirth','birth','mrn','nhs','ssn','passport','nationality','national','insurance','insurer','policy','phone','mobile','telephone','tel','email','mail','address','postcode','zipcode','zip','street','ip']);
+const NAME_CTX=new Set(['patient','person','first','last','full','given','family','client','customer','member','user','staff','employee']);
+function headerTokens(h){ return String(h).replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }
+function isPiiHeader(h){ const t=headerTokens(h), j=t.join('');
+  if(t.some(x=>PII_TOKENS.has(x))||PII_TOKENS.has(j)) return true;
+  if(t.includes('name')&&(t.length===1||t.some(x=>NAME_CTX.has(x)))) return true;
+  return false; }
+const DATE_HINT=/(date|time|_at$|^at_|dttm|datetime|timestamp|\bdt\b|\bts\b)/i;
+const DUE_HINT=/(due|expected|target|planned|estimated|edd|deadline)/i;
+const ID_HINT=/(^|[^a-z])(id|key|case|encounter|ticket|reference|ref|number|no)([^a-z]|$)/i;
+const REASON_HINT=/(reason|cause|barrier|delay_?code)/i;
+function profileColumns(table,maxRows){
+  const R=table.data.slice(0,maxRows||3000);
+  return table.header.map((col,i)=>{
+    const vals=R.map(r=>r[i]).filter(nonEmpty), n=vals.length;
+    const hint=DATE_HINT.test(col);
+    const isDate=v=>typeof v==='number'?((hint||v%1!==0)&&!!toDate(v)):!!toDate(v);
+    const dateN=vals.filter(isDate).length, numN=vals.filter(looksNum).length;
+    const distinctSet=new Set(vals.map(v=>String(v))), distinct=distinctSet.size;
+    const sample=[...distinctSet].slice(0,3).map(v=>v.length>28?v.slice(0,26)+'…':v);
+    const p={col,idx:i,n,fill:R.length?n/R.length:0,dateShare:n?dateN/n:0,numShare:n?numN/n:0,distinct,sample,pii:isPiiHeader(col)};
+    p.role=suggestRole(p); p.type=p.numShare>=0.95&&distinct>12?'num':'cat';
+    return p; });
+}
+function suggestRole(p){
+  if(!p.n) return 'ignore';
+  if(p.pii) return 'ignore';
+  if(p.dateShare>=0.6) return DUE_HINT.test(p.col)?'due':'step';
+  if(ID_HINT.test(p.col)&&p.distinct>=0.9*p.n) return 'id';
+  if(REASON_HINT.test(p.col)) return 'reason';
+  if(p.numShare>=0.95) return p.distinct>=0.9*p.n&&p.n>50?'ignore':'attribute';
+  if(p.distinct<=Math.max(40,0.2*p.n)) return 'attribute';
+  return 'ignore';   // free text or near-unique values
+}
+
+/* =====================================================================
+   Configuration: the wizard's output, one plain JSON document
+   ===================================================================== */
+const CONFIG_SCHEMA='proxy-process-explorer/config@1';
+const ROLES=['ignore','id','step','attribute','reason','due'];
+function humanise(col){ let s=String(col).replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_\-.]+/g,' ').replace(/\s+/g,' ').trim();
+  s=s.replace(/\b(date ?time|datetime|timestamp|dttm|date|time|at|ts|dt)$/i,'').trim()||s;
+  return s.charAt(0).toUpperCase()+s.slice(1).toLowerCase(); }
+function suggestConfig(table,profile){
+  profile=profile||profileColumns(table);
+  const columns={}; let idTaken=false;
+  for(const p of profile){ let role=p.role; if(role==='id'){ if(idTaken) role='attribute'; idTaken=true; }
+    if(role==='attribute'&&p.distinct>=0.9*p.n&&p.n>50) role='ignore';
+    columns[p.col]={role,label:humanise(p.col)};
+    if(role==='attribute'){ columns[p.col].type=p.type; columns[p.col].risk=false; } }
+  const steps=profile.filter(p=>columns[p.col].role==='step');
+  // happy flow guess: column order, dropping steps recorded in fewer than half the rows (likely optional)
+  const happy=steps.filter(p=>p.fill>=0.5).map(p=>p.col);
+  return normaliseConfig({schema:CONFIG_SCHEMA,name:'Process',terms:{case:'case',cases:'cases'},columns,
+    stepOrder:steps.map(p=>p.col),happyFlow:happy.length>=2?happy:steps.map(p=>p.col),rules:[],settings:{weekend:[6,0],basis:'start'}});
+}
+function normaliseConfig(c){
+  c=JSON.parse(JSON.stringify(c||{}));
+  c.schema=CONFIG_SCHEMA; c.name=c.name||'Process';
+  c.terms=Object.assign({case:'case',cases:'cases'},c.terms||{});
+  c.columns=c.columns||{};
+  for(const [k,v] of Object.entries(c.columns)){ if(!ROLES.includes(v.role)) v.role='ignore'; v.label=v.label||humanise(k);
+    if(v.role==='attribute'){ v.type=v.type==='num'?'num':'cat'; v.risk=!!v.risk; } }
+  const stepCols=Object.keys(c.columns).filter(k=>c.columns[k].role==='step');
+  c.stepOrder=(c.stepOrder||[]).filter(k=>stepCols.includes(k)); for(const k of stepCols) if(!c.stepOrder.includes(k)) c.stepOrder.push(k);
+  c.happyFlow=(c.happyFlow||[]).filter(k=>stepCols.includes(k));
+  c.rules=Array.isArray(c.rules)?c.rules:[];
+  c.settings=Object.assign({weekend:[6,0],basis:'start'},c.settings||{});
+  return c;
+}
+// Problems that stop the analysis (errors) or that the user should know about (warnings).
+function validateConfig(c,header){
+  const errors=[], warnings=[], H=new Set(header||[]);
+  const missing=Object.keys(c.columns).filter(k=>c.columns[k].role!=='ignore'&&header&&!H.has(k));
+  if(missing.length) errors.push(`These columns are in the configuration but not in the file: ${missing.join(', ')}.`);
+  if(c.happyFlow.length<2) errors.push('The happy flow needs at least two steps: the first starts the clock and the last ends the case.');
+  if(new Set(c.happyFlow).size!==c.happyFlow.length) errors.push('A step appears twice in the happy flow.');
+  const ids=Object.keys(c.columns).filter(k=>c.columns[k].role==='id'); if(ids.length>1) errors.push('Only one column can be the case ID.');
+  const dues=Object.keys(c.columns).filter(k=>c.columns[k].role==='due'); if(dues.length>1) errors.push('Only one column can be the due date.');
+  if(!ids.length) warnings.push('No case ID column: cases will be numbered by row, and the lookup searches row numbers.');
+  const pii=Object.keys(c.columns).filter(k=>c.columns[k].role!=='ignore'&&isPiiHeader(k));
+  if(pii.length) warnings.push(`These columns look like personal data and are in use: ${pii.join(', ')}. Everything stays in this browser, but slides and downloads will carry them if shown.`);
+  return {errors,warnings,ok:!errors.length};
+}
+
+// Share of rows with a readable time, and the median position of each step column relative to the
+// earliest step time in the same row. Used by the wizard to suggest a step order.
+function stepStats(table,cols){
+  const H=table.header, idx=cols.map(c=>H.indexOf(c)), dfi=detectDayFirst(table.data.flatMap(r=>idx.map(i=>r[i])));
+  const off=cols.map(()=>[]), fill=cols.map(()=>0);
+  for(const r of table.data){ const t=idx.map(i=>toDate(r[i],dfi.dayFirst)); const ok=t.filter(Boolean); if(!ok.length) continue;
+    const m0=Math.min(...ok.map(d=>+d)); t.forEach((d,j)=>{ if(d){ fill[j]++; off[j].push((d-m0)/6e4); } }); }
+  const n=table.data.length||1;
+  return Object.fromEntries(cols.map((c,j)=>[c,{fill:fill[j]/n,med:dist(off[j]).med}]));
+}
+function typicalOrder(table,cols){ const st=stepStats(table,cols); return cols.slice().sort((a,b)=>(st[a].med??Infinity)-(st[b].med??Infinity)); }
+// Carry an imported configuration over to a file: columns the file does not have are dropped and reported.
+function mergeConfig(imported,table,profile){
+  const base=suggestConfig(table,profile), imp=normaliseConfig(imported), H=new Set(table.header);
+  const dropped=Object.keys(imp.columns).filter(k=>!H.has(k)&&imp.columns[k].role!=='ignore');
+  for(const k of table.header) if(imp.columns[k]) base.columns[k]=imp.columns[k];
+  base.name=imp.name; base.terms=imp.terms; base.settings=imp.settings;
+  const ok=k=>H.has(k)&&base.columns[k]&&base.columns[k].role==='step';
+  base.stepOrder=imp.stepOrder.filter(ok).concat(base.stepOrder.filter(k=>!imp.stepOrder.includes(k)));
+  base.happyFlow=imp.happyFlow.filter(ok);
+  base.rules=imp.rules.filter(r=>[r.a,r.b].filter(Boolean).every(ok));
+  return {cfg:normaliseConfig(base),dropped,rulesDropped:imp.rules.length-base.rules.length};
+}
+
+/* =====================================================================
+   Schema: the internal view of a configuration
+   ===================================================================== */
+let SCH=null;
+function shortLabel(l){ if(l.length<=18) return l; const w=l.split(' '); let s=w[0]; for(const x of w.slice(1)){ if((s+' '+x).length>18) break; s+=' '+x; } return s; }
+function setSchema(cfg){
+  cfg=normaliseConfig(cfg); const C=cfg.columns;
+  const order=cfg.happyFlow.concat(cfg.stepOrder.filter(k=>!cfg.happyFlow.includes(k)));
+  const steps=order.map((col,i)=>({k:'s'+i,col,l:C[col].label,s:shortLabel(C[col].label),happy:cfg.happyFlow.includes(col)}));
+  const byCol=Object.fromEntries(steps.map(s=>[s.col,s.k]));
+  const S={cfg,steps,byCol,happy:cfg.happyFlow.map(c=>byCol[c]),
+    start:byCol[cfg.happyFlow[0]],end:byCol[cfg.happyFlow[cfg.happyFlow.length-1]],
+    idCol:Object.keys(C).find(k=>C[k].role==='id')||null,dueCol:Object.keys(C).find(k=>C[k].role==='due')||null,
+    attrs:Object.keys(C).filter(k=>C[k].role==='attribute').map(k=>({col:k,l:C[k].label,type:C[k].type,risk:!!C[k].risk})),
+    reasons:Object.keys(C).filter(k=>C[k].role==='reason').map((k,i)=>({k:'r'+i,col:k,l:C[k].label})),
+    terms:cfg.terms,name:cfg.name};
+  S.idx=Object.fromEntries(steps.map((s,i)=>[s.k,i]));
+  S.lab=Object.fromEntries(steps.map(s=>[s.k,s.l])); S.lab.S='Start'; S.lab.E='End';
+  S.short=Object.fromEntries(steps.map(s=>[s.k,s.s]));
+  S.durLabel=`${S.short[S.start]} → ${S.short[S.end]}`;
+  SCH=S; return S;
+}
+const EVL=k=>SCH.lab[k]||k;
+const shortL=k=>SCH.short[k]||k;
+
+/* =====================================================================
+   Records: one per row (case)
+   ===================================================================== */
+function numBands(vals){ const s=vals.filter(v=>v!=null).sort((a,b)=>a-b); if(s.length<8) return null;
+  const q=[quant(s,.25),quant(s,.5),quant(s,.75)], fmt=v=>Math.abs(v)>=100||Number.isInteger(v)?String(Math.round(v)):v.toFixed(1);
+  const cuts=[...new Set(q)]; const edges=[s[0],...cuts,s[s.length-1]];
+  return {cuts,label:v=>{ if(v==null) return 'Not recorded'; let i=cuts.findIndex(c=>v<=c); if(i<0) i=cuts.length; return `${String.fromCharCode(65+i)}: ${fmt(i?edges[i]:edges[0])}${i?'+':''} to ${fmt(edges[i+1])}`; }}; }
+function buildRecords(table,cfg){
+  const S=setSchema(cfg), H=table.header, ci=c=>H.indexOf(c);
+  const v=validateConfig(S.cfg,H); if(!v.ok) throw new Error(v.errors.join(' '));
+  const stepIdx=S.steps.map(s=>ci(s.col)), dueI=S.dueCol?ci(S.dueCol):-1, idI=S.idCol?ci(S.idCol):-1;
+  const dateVals=[]; for(const r of table.data){ for(const i of stepIdx) dateVals.push(r[i]); if(dueI>=0) dateVals.push(r[dueI]); }
+  const dfi=detectDayFirst(dateVals);
+  const meta={sheet:table.sheet,headerRow:table.headerRow,rows:0,noEnd:0,noStart:0,negDur:0,dupId:0,bad:{},diag:{},dfi,warnings:v.warnings,bands:{}};
+  for(const s of S.steps) meta.diag[s.k]={col:s.col,non:0,ok:0,badEx:null};
+  const seen=new Set(), recs=[];
+  table.data.forEach((row,ri)=>{
+    meta.rows++;
+    const r={row:ri+table.headerRow+1,id:idI>=0?str(row[idI]):String(ri+1),t:{},attr:{},num:{},reason:{}};
+    S.steps.forEach((s,j)=>{ const raw=row[stepIdx[j]], D=meta.diag[s.k];
+      if(nonEmpty(raw)){ D.non++; const d=toDate(raw,dfi.dayFirst); if(d){ D.ok++; r.t[s.k]=d; } else { if(!D.badEx) D.badEx=String(raw).slice(0,40); (meta.bad[s.k]=meta.bad[s.k]||{n:0,sample:String(raw).slice(0,40)}).n++; } } });
+    if(!r.t[S.end]){ meta.noEnd++; return; }
+    for(const a of S.attrs){ const x=row[ci(a.col)];
+      if(a.type==='num'){ const n=looksNum(x)?parseFloat(String(x).replace(',','.')):null; r.num[a.col]=n; } else r.attr[a.col]=str(x)||'Not recorded'; }
+    for(const q of S.reasons){ r.reason[q.k]=str(row[ci(q.col)])||null; }
+    if(dueI>=0){ r.due=toDate(row[dueI],dfi.dayFirst); }
+    if(r.id&&idI>=0){ if(seen.has(r.id)) meta.dupId++; seen.add(r.id); }
+    r.t0=r.t[S.start]||null; r.t1=r.t[S.end];
+    if(!r.t0) meta.noStart++;
+    r.dur=mins(r.t1,r.t0); if(r.dur!=null&&r.dur<0) meta.negDur++;
+    r.off={}; r.toEnd={}; for(const s of S.steps){ r.off[s.k]=mins(r.t[s.k],r.t0); r.toEnd[s.k]=mins(r.t1,r.t[s.k]); }
+    r.byDue=r.due?(dayKey(r.t1)<=dayKey(r.due)):null;
+    r.dueDelta=r.due?Math.round((dayKey(r.t1)-dayKey(r.due))/864e5):null;
+    r.month=`${r.t1.getUTCFullYear()}-${p2(r.t1.getUTCMonth()+1)}`;
+    r.anyReason=S.reasons.some(q=>r.reason[q.k]);
+    recs.push(r);
+  });
+  if(!recs.length) throw new Error(`No rows have a readable time in the end step ("${S.lab[S.end]}"), so no case can be built.`);
+  // numeric attributes are compared in quartile bands
+  for(const a of S.attrs.filter(a=>a.type==='num')){ const b=numBands(recs.map(r=>r.num[a.col])); meta.bands[a.col]=b;
+    for(const r of recs) r.attr[a.col]=b?b.label(r.num[a.col]):(r.num[a.col]==null?'Not recorded':String(r.num[a.col])); }
+  return {recs,meta,schema:S};
+}
+
+/* settings-dependent fields */
+function prepare(R,opt){
+  const S=SCH, wk=opt.weekend||[6,0];
+  for(const r of R){
+    const end=r.t1;
+    r.ev=S.steps.map((s,i)=>({k:s.k,t:r.t[s.k],i})).filter(x=>x.t&&(opt.post||x.k===S.end||x.t<=end)).sort((a,b)=>a.t-b.t||a.i-b.i);
+    r.trace=r.ev.map(x=>x.k); r.vtrace=opt.vmode==='set'?r.trace.slice().sort((a,b)=>S.idx[a]-S.idx[b]):r.trace; r.vkey=(opt.vmode==='set'?'set:':'')+r.vtrace.join('>');
+    const bd=opt.basis==='end'?end:r.t0;
+    r.dow=bd?bd.getUTCDay():null; r.hour=bd?bd.getUTCHours():null;
+    r.dayType=r.dow==null?'Unknown':(wk.includes(r.dow)?'Weekend':'Weekday');
+    r.dowL=r.dow==null?'Unknown':DAYS[r.dow];
+    const pre=r.ev.filter(x=>x.k!==S.end&&x.t<=end); r.last=pre.length?pre[pre.length-1].k:null;
+    r.lastWait=r.last?mins(end,r.t[r.last]):null;
+  }
+}
+function keyOf(trace,vmode){ const S=SCH; return (vmode==='set'?'set:':'')+(vmode==='set'?trace.slice().sort((a,b)=>S.idx[a]-S.idx[b]):trace).join('>'); }
+
+/* =====================================================================
+   Process model: directly-follows graph and sequences (variants)
+   ===================================================================== */
+function buildModel(R){
+  const nodes={S:{n:R.length},E:{n:R.length}}, edges=new Map(), vars=new Map();
+  for(const r of R){
+    for(const e of r.ev){ (nodes[e.k]=nodes[e.k]||{n:0}).n++; }
+    const seq=[{k:'S'}].concat(r.ev,[{k:'E'}]);
+    for(let i=0;i<seq.length-1;i++){ const a=seq[i],b=seq[i+1],key=a.k+'>'+b.k;
+      let E=edges.get(key); if(!E){ E={key,a:a.k,b:b.k,n:0,d:[],recs:[]}; edges.set(key,E); }
+      E.n++; E.recs.push(r); if(a.t&&b.t) E.d.push((b.t-a.t)/6e4); }
+    let v=vars.get(r.vkey); if(!v){ v={key:r.vkey,trace:r.vtrace,n:0,recs:[],dur:[]}; vars.set(r.vkey,v); }
+    v.n++; v.recs.push(r); if(r.dur!=null) v.dur.push(r.dur);
+  }
+  for(const E of edges.values()) E.st=dist(E.d);
+  const variants=[...vars.values()].sort((a,b)=>b.n-a.n||a.key.localeCompare(b.key)); variants.forEach(v=>v.st=dist(v.dur));
+  const pos={}; for(const r of R){ const L=r.ev.length; r.ev.forEach((e,i)=>{ (pos[e.k]=pos[e.k]||[]).push(L>1?i/(L-1):0); }); }
+  const rank={}; for(const k in pos) rank[k]=dist(pos[k]).med;
+  return {total:R.length,nodes,edges,variants,rank};
+}
+function layoutOrder(model,ref){
+  const present=SCH.steps.map(e=>e.k).filter(k=>model.nodes[k]&&model.nodes[k].n>0);
+  const order=ref.filter(k=>present.includes(k));
+  const rest=present.filter(k=>!order.includes(k)).sort((a,b)=>(model.rank[a]||0)-(model.rank[b]||0));
+  for(const k of rest){ const rk=model.rank[k]||0; let j=order.findIndex(x=>(model.rank[x]||0)>rk); if(j<0) j=order.length; order.splice(j,0,k); }
+  return order;
+}
+function refEdges(ref){ const s=new Set(); const seq=['S'].concat(ref,['E']); for(let i=0;i<seq.length-1;i++) s.add(seq[i]+'>'+seq[i+1]); return s; }
+function lcs(a,b){ const m=a.length,n=b.length,T=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--) T[i][j]=a[i]===b[j]?T[i+1][j+1]+1:Math.max(T[i+1][j],T[i][j+1]);
+  const out=new Set(); let i=0,j=0; while(i<m&&j<n){ if(a[i]===b[j]){ out.add(a[i]); i++; j++; } else if(T[i+1][j]>=T[i][j+1]) i++; else j++; } return out; }
+// How a recorded sequence differs from the reference: missing steps, extra steps, steps out of order.
+function deviations(trace,ref,mode){
+  const out=[]; const tset=new Set(trace), rset=new Set(ref);
+  for(const k of ref) if(!tset.has(k)) out.push({t:'miss',k,l:shortL(k)+' missing'});
+  for(const k of trace) if(!rset.has(k)) out.push({t:'extra',k,l:shortL(k)+' added'});
+  if(mode==='set') return out;
+  const ct=trace.filter(k=>rset.has(k)), cr=ref.filter(k=>tset.has(k)), keep=lcs(ct,cr);
+  for(const k of ct){ if(keep.has(k)) continue; const it=ct.indexOf(k), ir=cr.indexOf(k);
+    out.push({t:'order',k,l:shortL(k)+(it<ir?' earlier':' later')}); }
+  return out;
+}
+
+/* =====================================================================
+   Statistics
+   ===================================================================== */
+function stats(R,refKey){
+  const dur=dist(R.map(r=>r.dur)); const n=R.length;
+  const due=R.filter(r=>r.byDue!=null);
+  const ms={}; for(const e of SCH.steps){ if(e.k===SCH.start) continue; ms[e.k]=dist(R.map(r=>r.off[e.k])); }
+  return { n, dur,
+    due:due.length?due.filter(r=>r.byDue).length/due.length:null, dueN:due.length,
+    conf:n&&refKey!=null?R.filter(r=>r.vkey===refKey).length/n:null,
+    reason:n?R.filter(r=>r.anyReason).length/n:null, ms };
+}
+function milestoneTiming(R){
+  const S=SCH;
+  return S.steps.filter(e=>e.k!==S.start).map(e=>{
+    const withT=R.filter(r=>r.t[e.k]), both=withT.filter(r=>r.t0);
+    const d=dist(both.map(r=>r.off[e.k]));
+    return { k:e.k, l:e.l, rec:withT.length, recP:R.length?withT.length/R.length:null, d,
+      before:both.length?both.filter(r=>r.off[e.k]<0).length/both.length:null,
+      after:e.k===S.end?null:(withT.length?withT.filter(r=>r.t[e.k]>r.t1).length/withT.length:null),
+      toEnd:e.k===S.end?null:dist(withT.map(r=>r.toEnd[e.k]).filter(x=>x>=0)) };
+  });
+}
+function lastMilestone(R){
+  const m=new Map(); for(const r of R){ const k=r.last||'none'; let x=m.get(k); if(!x){ x={k,n:0,w:[]}; m.set(k,x); } x.n++; if(r.lastWait!=null) x.w.push(r.lastWait); }
+  return [...m.values()].map(x=>({...x,p:R.length?x.n/R.length:0,st:dist(x.w)})).sort((a,b)=>b.n-a.n);
+}
+function reasonTables(R){
+  return SCH.reasons.map(({k,l})=>{ const m=new Map(); let any=0;
+    for(const r of R){ const v=r.reason[k]; if(!v) continue; any++; let x=m.get(v); if(!x){ x={v,n:0,dur:[],recs:[]}; m.set(v,x); } x.n++; x.recs.push(r); if(r.dur!=null) x.dur.push(r.dur); }
+    const rows=[...m.values()].map(x=>({...x,p:R.length?x.n/R.length:0,st:dist(x.dur)})).sort((a,b)=>b.n-a.n);
+    const none=dist(R.filter(r=>!r.reason[k]).map(r=>r.dur));
+    return {k,l,any,anyP:R.length?any/R.length:0,rows,none}; });
+}
+function groupBy(R,fn){ const m=new Map(); for(const r of R){ const v=fn(r); const key=v==null||v===''?'Not recorded':String(v); let g=m.get(key); if(!g){ g=[]; m.set(key,g); } g.push(r); } return m; }
+function topReason(R){ const m=new Map(); for(const r of R) for(const {k,l} of SCH.reasons){ const v=r.reason[k]; if(!v) continue; const key=l+'|'+v; m.set(key,(m.get(key)||0)+1); }
+  let best=null; for(const [k,n] of m) if(!best||n>best.n) best={cat:k.split('|')[0],v:k.split('|').slice(1).join('|'),n}; return best; }
+function breakdown(R,fn,refKey,extra){
+  return [...groupBy(R,fn).entries()].map(([key,g])=>{ const x={key,n:g.length,recs:g,st:stats(g,refKey),top:topReason(g)}; if(extra) extra(x,g); return x; });
+}
+function heatData(R,metric,basis,refKey){
+  const cells={}; for(const r of R){ const d=basis==='end'?r.t1:r.t0; if(!d) continue; const k=d.getUTCDay()+'_'+d.getUTCHours(); (cells[k]=cells[k]||[]).push(r); }
+  const out={}; let max=0,min=Infinity;
+  for(const k in cells){ const g=cells[k]; let v, nv=g.length;
+    if(metric==='n') v=g.length; else if(metric==='dur'){ const d=dist(g.map(r=>r.dur)); v=d.med; nv=d.n; } else v=g.filter(r=>r.vkey===refKey).length/g.length;
+    out[k]={n:g.length,nv,v}; if(v!=null&&(metric==='n'||nv>=3)){ max=Math.max(max,v); min=Math.min(min,v); } }
+  return {cells:out,max,min:min===Infinity?0:min,metric};
+}
+
+/* =====================================================================
+   SVG renderers (inline attributes only, so the same markup rasterises for slides)
+   ===================================================================== */
+function wrap(t,max){ const w=t.split(' '), out=[]; let cur=''; for(const x of w){ if((cur+' '+x).trim().length>max&&cur){ out.push(cur); cur=x; } else cur=(cur+' '+x).trim(); } if(cur) out.push(cur); return out.slice(0,2); }
+function svgOpen(W,H){ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${FONT}"><rect width="${W}" height="${H}" fill="#FFFFFF"/>`; }
+function emptySvg(msg,w){ w=w||600; return {svg:svgOpen(w,70)+`<text x="16" y="40" font-size="13" fill="${PAL.ink}">${xmlEsc(msg)}</text></svg>`,w,h:70}; }
+function edgeLabel(e,metric,total){
+  if(metric==='freq') return `${pctS(e.n/total)} (${e.n.toLocaleString()})`;
+  if(!e.st||!e.st.n) return '';
+  return fmtMin(metric==='mean'?e.st.mean:e.st.med);
+}
+function slowEdges(model){
+  const minN=Math.max(5,Math.ceil(model.total*0.02));
+  return new Set([...model.edges.values()].filter(e=>e.a!=='S'&&e.b!=='E'&&e.a!==SCH.end&&e.st.n>=minN&&e.st.med!=null).sort((a,b)=>b.st.med-a.st.med).slice(0,3).map(e=>e.key));
+}
+const EDGE_COL={happy:PAL.ink,neutral:PAL.ink2,fwdskip:SEM.skip,back:SEM.alert};
+function markerDefs(){ return '<defs>'+Object.values(EDGE_COL).map(c=>`<marker id="m${c.slice(1)}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`).join('')+'</defs>'; }
+function edgeTip(e,total,slow){ const st=e.st, T=SCH.terms;
+  return `${EVL(e.a)} → ${EVL(e.b)}\n${e.n.toLocaleString()} ${T.cases} (${pctS(e.n/total)} of the ${total.toLocaleString()} shown)`+
+    (st&&st.n?`\nTime between: median ${fmtMin(st.med)}, mean ${fmtMin(st.mean)}, P75 ${fmtMin(st.p75)}, P90 ${fmtMin(st.p90)}`:'')+(slow.has(e.key)?'\nOne of the three slowest transitions (median)':''); }
+function nodeTip(k,n,total,tim,inRef){ const T=SCH.terms;
+  return `${EVL(k)}\n${n.toLocaleString()} ${T.cases} (${pctS(n/total)})`+(tim&&k!==SCH.start?`\nFrom ${EVL(SCH.start)}: median ${fmtMin(tim.d.med)} (n=${tim.d.n})`+(tim.after!=null?`\nRecorded after the end step: ${pctS(tim.after)}`:''):'')+(inRef?'\nPart of the reference flow':'\nNot in the reference flow'); }
+function labelPills(labels){ let s='';
+  for(const l of labels){ const tw=l.txt.length*5.6+10;
+    s+=`<g opacity="${l.op}" pointer-events="none"><rect x="${(l.x-tw/2).toFixed(1)}" y="${(l.y-8.5).toFixed(1)}" width="${tw.toFixed(1)}" height="17" fill="${l.fill}" stroke="${l.col}" stroke-width="0.8"/>`+
+      `<text x="${l.x.toFixed(1)}" y="${(l.y+3.5).toFixed(1)}" text-anchor="middle" font-size="9.8" fill="${l.col}" font-weight="${l.bold?700:500}">${xmlEsc(l.txt)}</text></g>`; }
+  return s; }
+function edgePath(g,d,col,w,op,interactive,tip){
+  return `<g${interactive?` data-edge="${g.e.key}" style="cursor:pointer"`:''} opacity="${op}"><title>${xmlEsc(tip)}</title>`+
+    `<path d="${d}" fill="none" stroke="#FFFFFF" stroke-opacity="0" stroke-width="${Math.max(14,+w+8)}"/>`+
+    `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="square" marker-end="url(#m${col.slice(1)})"/></g>`; }
+
+/* horizontal process map (slides) */
+const NW=100,NH=58,GAP=64,PW=46,PH=26;
+function renderMapSvgH(model,o){
+  const total=model.total; if(!total) return emptySvg(`No ${SCH.terms.cases} match the current filters.`);
+  const order=o.order, seq=['S'].concat(order,['E']), idx={}; seq.forEach((k,i)=>idx[k]=i);
+  const RE=refEdges(o.ref), metric=o.metric||'freq', slow=metric==='freq'?new Set():(o.slow||new Set());
+  const edges=[...model.edges.values()].filter(e=>idx[e.a]!=null&&idx[e.b]!=null&&(e.n/total*100>=(o.minPct||0)||RE.has(e.key)));
+  let x=16; const P={}; for(const k of seq){ const w=(k==='S'||k==='E')?PW:NW; P[k]={x,w,h:(k==='S'||k==='E')?PH:NH}; x+=w+GAP; }
+  const W=x-GAP+16;
+  const geo=edges.map(e=>{ const ia=idx[e.a],ib=idx[e.b], span=Math.abs(ib-ia);
+    const t=ib===ia+1?'fwd':(ib>ia?'up':'down'); return {e,t,span,h:t==='fwd'?0:(t==='up'?30+(span-2)*20:30+(span-1)*20)}; });
+  const maxUp=Math.max(0,...geo.filter(g=>g.t==='up').map(g=>g.h)), maxDn=Math.max(0,...geo.filter(g=>g.t==='down').map(g=>g.h));
+  const TOP=16+(maxUp?maxUp+16:10), YC=TOP+NH/2, H=Math.round(YC+NH/2+(maxDn?maxDn+18:10)+12);
+  const maxN=Math.max(1,...edges.map(e=>e.n));
+  let s=svgOpen(W,H)+markerDefs();
+  s+=`<rect x="6" y="${YC-NH/2-10}" width="${W-12}" height="${NH+20}" fill="${PAL.t6}"/>`;
+  const labels=[];
+  geo.sort((a,b)=>a.e.n-b.e.n);
+  for(const g of geo){ const e=g.e, A=P[e.a], B=P[e.b], happy=RE.has(e.key);
+    const col=happy?EDGE_COL.happy:g.t==='fwd'?EDGE_COL.neutral:g.t==='up'?EDGE_COL.fwdskip:EDGE_COL.back;
+    const w=(1.2+7*Math.sqrt(e.n/maxN)).toFixed(1), op=happy?0.92:0.8;
+    const sp=Math.min(g.span,6)*0.04; let d,lx,ly;
+    if(g.t==='fwd'){ const sx=A.x+A.w, ex=B.x-2; d=`M${sx},${YC} L${ex},${YC}`; lx=(sx+ex)/2; ly=YC; }
+    else if(g.t==='up'){ const sx=A.x+A.w*(0.55+sp), ex=B.x+B.w*(0.45-sp), ya=YC-A.h/2, yb=YC-B.h/2-2, c=g.h*1.33;
+      d=`M${sx},${ya} C${sx},${ya-c} ${ex},${yb-c} ${ex},${yb}`; lx=(sx+ex)/2; ly=Math.min(ya,yb)-g.h; }
+    else { const sx=A.x+A.w*(0.45-sp), ex=B.x+B.w*(0.55+sp), ya=YC+A.h/2, yb=YC+B.h/2+2, c=g.h*1.33;
+      d=`M${sx},${ya} C${sx},${ya+c} ${ex},${yb+c} ${ex},${yb}`; lx=(sx+ex)/2; ly=Math.max(ya,yb)+g.h; }
+    s+=edgePath(g,d,col,w,op,false,edgeTip(e,total,slow));
+    const txt=edgeLabel(e,metric,total); if(txt) labels.push({x:lx,y:ly,txt,col:slow.has(e.key)?SEM.alert:col,op:1,bold:happy||slow.has(e.key),fill:slow.has(e.key)?SEM.alertWash:'#FFFFFF'});
+  }
+  s+=labelPills(labels);
+  const refSet=new Set(o.ref);
+  for(const k of seq){ const p=P[k], y=YC-p.h/2, n=model.nodes[k]?model.nodes[k].n:0;
+    if(k==='S'||k==='E'){ s+=`<rect x="${p.x}" y="${y}" width="${p.w}" height="${p.h}" fill="#FFFFFF" stroke="${PAL.ink2}" stroke-width="1.2"/><text x="${p.x+p.w/2}" y="${y+17}" text-anchor="middle" font-size="10" font-weight="500" letter-spacing="1" fill="${PAL.ink2}">${k==='S'?'START':'END'}</text>`; continue; }
+    const inRef=refSet.has(k), fill=inRef?PAL.ink:'#FFFFFF', tc=inRef?PAL.cream:PAL.ink, lines=wrap(EVL(k),14);
+    s+=`<g><title>${xmlEsc(nodeTip(k,n,total,o.timing&&o.timing[k],inRef))}</title><rect x="${p.x}" y="${y}" width="${p.w}" height="${p.h}" fill="${fill}" stroke="${inRef?PAL.ink:PAL.ink2}" stroke-width="${inRef?0:1.3}"/>`+
+      lines.map((t,i)=>`<text x="${p.x+p.w/2}" y="${y+(lines.length===1?24:17)+i*14}" text-anchor="middle" font-size="11.5" font-weight="600" fill="${tc}">${xmlEsc(t)}</text>`).join('')+
+      `<text x="${p.x+p.w/2}" y="${y+48}" text-anchor="middle" font-size="10.5" fill="${tc}" opacity="0.85">${n.toLocaleString()} · ${pctS(n/total)}</text></g>`; }
+  return {svg:s+'</svg>',w:W,h:H};
+}
+
+/* vertical process map: reference flow top to bottom, skips on the right, earlier-than-reference on the left */
+const VNW=178,VNH=36,VGAP=27,VPW=74,VPH=20;
+function renderMapSvg(model,o){
+  const total=model.total; if(!total) return emptySvg(`No ${SCH.terms.cases} match the current filters.`);
+  const order=o.order, seq=['S'].concat(order,['E']), idx={}; seq.forEach((k,i)=>idx[k]=i);
+  const RE=refEdges(o.ref), metric=o.metric||'freq', slow=metric==='freq'?new Set():(o.slow||new Set());
+  const edges=[...model.edges.values()].filter(e=>idx[e.a]!=null&&idx[e.b]!=null&&(e.n/total*100>=(o.minPct||0)||RE.has(e.key)||(o.hl&&o.hl.edges.has(e.key))));
+  const geo=edges.map(e=>{ const ia=idx[e.a],ib=idx[e.b], span=Math.abs(ib-ia);
+    const t=ib===ia+1?'fwd':(ib>ia?'right':'left'); return {e,t,span,d:t==='fwd'?0:(t==='right'?36+(span-2)*30:36+(span-1)*30),txt:edgeLabel(e,metric,total)}; });
+  const lw=g=>g.txt?g.txt.length*5.6+10:0;
+  const maxR=Math.max(0,...geo.filter(g=>g.t==='right').map(g=>g.d+lw(g)/2)), maxL=Math.max(0,...geo.filter(g=>g.t==='left').map(g=>g.d+lw(g)/2));
+  const CX=16+maxL+VNW/2+8, W=Math.round(CX+VNW/2+maxR+24);
+  let y=16; const P={}; for(const k of seq){ const se=k==='S'||k==='E', w=se?VPW:VNW, h=se?VPH:VNH; P[k]={x:CX-w/2,y,w,h}; y+=h+VGAP; }
+  const H=Math.round(y-VGAP+16);
+  const hl=o.hl, dimN=k=>hl&&!hl.nodes.has(k), dimE=k=>hl&&!hl.edges.has(k);
+  const maxN=Math.max(1,...edges.map(e=>e.n));
+  let s=svgOpen(W,H)+markerDefs();
+  s+=`<rect x="${CX-VNW/2-10}" y="6" width="${VNW+20}" height="${H-12}" fill="${PAL.t6}"/>`;
+  const labels=[];
+  geo.sort((a,b)=>(dimE(a.e.key)?0:1)-(dimE(b.e.key)?0:1)||a.e.n-b.e.n);
+  for(const g of geo){ const e=g.e, A=P[e.a], B=P[e.b], happy=RE.has(e.key);
+    const col=happy?EDGE_COL.happy:g.t==='fwd'?EDGE_COL.neutral:g.t==='right'?EDGE_COL.fwdskip:EDGE_COL.back;
+    const w=(1.2+7*Math.sqrt(e.n/maxN)).toFixed(1), op=dimE(e.key)?0.08:(happy?0.92:0.8);
+    const sp=Math.min(g.span,6)*0.05; let d,lx,ly;
+    if(g.t==='fwd'){ const sy=A.y+A.h, ey=B.y-2; d=`M${CX},${sy} L${CX},${ey}`; lx=CX; ly=(sy+ey)/2; }
+    else if(g.t==='right'){ const xa=A.x+A.w, xb=B.x+B.w+2, ya=A.y+A.h*(0.6+sp), yb=B.y+B.h*(0.4-sp), c=g.d*1.33;
+      d=`M${xa},${ya} C${xa+c},${ya} ${xb+c},${yb} ${xb},${yb}`; lx=Math.max(xa,xb)+g.d; ly=(ya+yb)/2; }
+    else { const xa=A.x, xb=B.x-2, ya=A.y+A.h*(0.4-sp), yb=B.y+B.h*(0.6+sp), c=g.d*1.33;
+      d=`M${xa},${ya} C${xa-c},${ya} ${xb-c},${yb} ${xb},${yb}`; lx=Math.min(xa,xb)-g.d; ly=(ya+yb)/2; }
+    s+=edgePath(g,d,col,w,op,o.interactive,edgeTip(e,total,slow));
+    if(g.txt) labels.push({x:lx,y:ly,txt:g.txt,col:slow.has(e.key)?SEM.alert:col,op:dimE(e.key)?0.15:1,bold:happy||slow.has(e.key),fill:slow.has(e.key)?SEM.alertWash:'#FFFFFF'});
+  }
+  s+=labelPills(labels);
+  const refSet=new Set(o.ref);
+  for(const k of seq){ const p=P[k], n=model.nodes[k]?model.nodes[k].n:0;
+    if(k==='S'||k==='E'){ s+=`<g opacity="${dimN(k)?0.3:1}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="#FFFFFF" stroke="${PAL.ink2}" stroke-width="1.2"/><text x="${CX}" y="${p.y+14}" text-anchor="middle" font-size="9.5" font-weight="500" letter-spacing="1.2" fill="${PAL.ink2}">${k==='S'?'START':'END'}</text></g>`; continue; }
+    const inRef=refSet.has(k), fill=inRef?PAL.ink:'#FFFFFF', tc=inRef?PAL.cream:PAL.ink, lab=EVL(k);
+    s+=`<g${o.interactive?` data-node="${k}" style="cursor:pointer"`:''} opacity="${dimN(k)?0.25:1}"><title>${xmlEsc(nodeTip(k,n,total,o.timing&&o.timing[k],inRef))}</title>`+
+      `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${fill}" stroke="${inRef?PAL.ink:PAL.ink2}" stroke-width="${inRef?0:1.3}"/>`+
+      `<text x="${CX}" y="${p.y+15}" text-anchor="middle" font-size="12" font-weight="600" fill="${tc}">${xmlEsc(lab.length>26?lab.slice(0,25)+'…':lab)}</text>`+
+      `<text x="${CX}" y="${p.y+30}" text-anchor="middle" font-size="10.5" fill="${tc}" opacity="0.85">${n.toLocaleString()} · ${pctS(n/total)}</text></g>`; }
+  return {svg:s+'</svg>',w:W,h:H};
+}
+
+function niceStep(range,maxT){ for(const c of [5,10,15,30,60,120,180,240,360,720,1440,2880,4320,10080,20160]) if(range/c<=maxT) return c; return 43200; }
+function tickLab(m){ if(m===0) return '0'; const a=Math.abs(m); const t=a<60?a+' min':(a<2880?(a/60)+' h':(a/1440)+' d'); return (m<0?'−':'+')+t; }
+function renderTimingSvg(T,sel){
+  const rows=T.filter(t=>t.d.n>0); if(!rows.length) return emptySvg(`No step has both its own time and a ${shortL(SCH.start)} time.`);
+  const W=860,LW=210,RW=110,rowH=30,top=34,H=top+rows.length*rowH+14;
+  const endRow=rows.find(r=>r.k===SCH.end), endMed=endRow?endRow.d.med:Infinity;
+  let lo=Math.min(0,...rows.map(r=>r.d.p25)), hi=Math.max(30,...rows.filter(r=>r.d.med<=endMed).map(r=>r.d.p90));
+  const pad=(hi-lo)*0.03; lo=lo<0?lo-pad:0; hi+=pad; const st=niceStep(hi-lo,8);
+  const X=v=>LW+(Math.max(lo,Math.min(hi,v))-lo)/(hi-lo)*(W-LW-RW);
+  let s=svgOpen(W,H);
+  for(let v=Math.ceil(lo/st)*st;v<=hi+1e-9;v+=st){ s+=`<line x1="${X(v)}" x2="${X(v)}" y1="${top-8}" y2="${H-10}" stroke="${v===0?PAL.teal:PAL.rule}" stroke-width="${v===0?1.5:1}"${v===0?' stroke-dasharray="5 5"':''}/><text x="${X(v)}" y="${top-14}" text-anchor="middle" font-size="10" fill="${v===0?PAL.teal:PAL.ink2}"${v===0?' font-weight="600"':''}>${v===0?xmlEsc(shortL(SCH.start)):tickLab(v)}</text>`; }
+  rows.forEach((r,i)=>{ const y=top+i*rowH+rowH/2, d=r.d, end=r.k===SCH.end, col=end?PAL.ink:PAL.ink2, on=sel===r.k;
+    if(on) s+=`<rect x="2" y="${y-rowH/2+1}" width="${W-4}" height="${rowH-2}" fill="${PAL.t6}"/>`;
+    s+=`<text x="${LW-10}" y="${y+4}" text-anchor="end" font-size="11.5" font-weight="${end?700:600}" fill="${PAL.ink}">${xmlEsc(r.l)}</text>`;
+    s+=`<line x1="${X(d.p75)}" x2="${X(d.p90)}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="1.4"/><line x1="${X(d.p90)}" x2="${X(d.p90)}" y1="${y-5}" y2="${y+5}" stroke="${col}" stroke-width="1.4"/>`;
+    s+=`<rect x="${X(d.p25)}" y="${y-7}" width="${Math.max(2,X(d.p75)-X(d.p25))}" height="14" fill="${end?PAL.t4:PAL.t6}" stroke="${col}" stroke-width="0.8"/>`;
+    s+=`<line x1="${X(d.med)}" x2="${X(d.med)}" y1="${y-9}" y2="${y+9}" stroke="${PAL.teal}" stroke-width="2.4"/>`;
+    if(d.p90>hi||d.med>hi) s+=`<path d="M${W-RW-8},${y-6} L${W-RW},${y} L${W-RW-8},${y+6}" fill="none" stroke="${PAL.ink2}" stroke-width="1.6"/><text x="${W-RW-12}" y="${y-9}" text-anchor="end" font-size="9" fill="${PAL.ink2}">beyond scale</text>`;
+    s+=`<text x="${W-RW+8}" y="${y+4}" font-size="11" fill="${PAL.ink}" font-weight="600">${fmtMin(d.med)}</text><text x="${W-8}" y="${y+4}" text-anchor="end" font-size="10" fill="${PAL.ink2}">n ${d.n}</text>`;
+    s+=`<title>${xmlEsc(`${r.l}: median ${fmtMin(d.med)} from ${shortL(SCH.start)}; middle half ${fmtMin(d.p25)} to ${fmtMin(d.p75)}; P90 ${fmtMin(d.p90)}; n=${d.n}`)}</title>`; });
+  return {svg:s+'</svg>',w:W,h:H};
+}
+function renderLastSvg(L){
+  if(!L.length) return emptySvg(`No ${SCH.terms.cases}.`);
+  const W=860,LW=210,rowH=28,H=18+L.length*rowH+8, bw=W-LW-330, mx=Math.max(...L.map(x=>x.p));
+  let s=svgOpen(W,H);
+  L.forEach((x,i)=>{ const y=12+i*rowH+rowH/2, w=Math.max(2,x.p/mx*bw), lab=x.k==='none'?'No step before the end':EVL(x.k);
+    s+=`<text x="${LW-10}" y="${y+4}" text-anchor="end" font-size="11.5" font-weight="600" fill="${PAL.ink}">${xmlEsc(lab)}</text><rect x="${LW}" y="${y-8}" width="${w}" height="16" fill="${i===0?PAL.teal:PAL.t4}"/>`+
+      `<text x="${LW+w+8}" y="${y+4}" font-size="11" fill="${PAL.ink}"><tspan font-weight="700">${pctS(x.p)}</tspan><tspan fill="${PAL.ink2}"> (${x.n})  ·  then median ${fmtMin(x.st.med)} to the end</tspan></text>`; });
+  return {svg:s+'</svg>',w:W,h:H};
+}
+function renderHourSvg(R){
+  const a=new Array(24).fill(0), b=new Array(24).fill(0);
+  for(const r of R){ if(r.t0) a[r.t0.getUTCHours()]++; b[r.t1.getUTCHours()]++; }
+  const W=860,H=230,L=40,T=30,B=34,cw=(W-L-10)/24, mx=Math.max(1,...a,...b), Y=v=>T+(H-T-B)*(1-v/mx);
+  let s=svgOpen(W,H);
+  const st=Math.max(1,Math.ceil(mx/5/5)*5); for(let v=0;v<=mx;v+=st) s+=`<line x1="${L}" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}" stroke="${PAL.rule}"/><text x="${L-6}" y="${Y(v)+3}" text-anchor="end" font-size="9.5" fill="${PAL.ink2}">${v}</text>`;
+  for(let h=0;h<24;h++){ const x=L+h*cw;
+    s+=`<rect x="${x+cw*0.12}" y="${Y(a[h])}" width="${cw*0.36}" height="${H-B-Y(a[h])}" fill="${PAL.t4}"><title>${p2(h)}:00 ${xmlEsc(EVL(SCH.start))}: ${a[h]}</title></rect>`;
+    s+=`<rect x="${x+cw*0.5}" y="${Y(b[h])}" width="${cw*0.36}" height="${H-B-Y(b[h])}" fill="${PAL.teal}"><title>${p2(h)}:00 ${xmlEsc(EVL(SCH.end))}: ${b[h]}</title></rect>`;
+    if(h%2===0) s+=`<text x="${x+cw/2}" y="${H-B+14}" text-anchor="middle" font-size="9.5" fill="${PAL.ink2}">${p2(h)}</text>`; }
+  s+=`<rect x="${L}" y="8" width="10" height="10" fill="${PAL.t4}"/><text x="${L+14}" y="17" font-size="10.5" fill="${PAL.ink}">${xmlEsc(EVL(SCH.start))}</text><rect x="${L+260}" y="8" width="10" height="10" fill="${PAL.teal}"/><text x="${L+274}" y="17" font-size="10.5" fill="${PAL.ink}">${xmlEsc(EVL(SCH.end))}</text>`;
+  s+=`<text x="${W/2}" y="${H-4}" text-anchor="middle" font-size="10" letter-spacing="1" fill="${PAL.ink2}">HOUR OF DAY</text></svg>`; return {svg:s,w:W,h:H};
+}
+// Counts and happy-flow share use the teal cascade; durations use a slate ramp.
+function heatColor(t,metric){ const base=metric==='dur'?[23,36,43]:[0,128,128]; const k=0.1+0.9*t;
+  return '#'+base.map(c=>Math.round(255-(255-c)*k).toString(16).padStart(2,'0')).join(''); }
+function renderHeatSvg(Hd,basisLabel){
+  const cw=31,ch=24,L=46,T=26,W=L+24*cw+10,H=T+7*ch+30, m=Hd.metric, cases=SCH.terms.cases;
+  let s=svgOpen(W,H);
+  for(let h=0;h<24;h++) s+=`<text x="${L+h*cw+cw/2}" y="${T-8}" text-anchor="middle" font-size="9.5" fill="${PAL.ink2}">${p2(h)}</text>`;
+  DAY_ORDER.forEach((d,ri)=>{ const y=T+ri*ch; s+=`<text x="${L-8}" y="${y+ch/2+4}" text-anchor="end" font-size="10.5" fill="${PAL.ink}" font-weight="600">${DAYS[d]}</text>`;
+    for(let h=0;h<24;h++){ const c=Hd.cells[d+'_'+h], x=L+h*cw; let fill='#FFFFFF',txt='',tc=PAL.ink,tip=`${DAYS[d]} ${p2(h)}:00: no ${cases}`;
+      if(c){ const small=m!=='n'&&(c.nv<3||c.v==null); if(small){ fill=PAL.rule; } else { const t=Hd.max>Hd.min?(c.v-Hd.min)/(Hd.max-Hd.min):1; fill=heatColor(t,m); tc=t>0.55?'#FFFFFF':PAL.ink; }
+        txt=m==='n'?String(c.n):small?'':(m==='dur'?(c.v/60).toFixed(1):String(Math.round(c.v*100)));
+        tip=`${DAYS[d]} ${p2(h)}:00: ${c.n} ${cases}`+(m==='dur'?`, median ${SCH.durLabel} ${fmtMin(c.v)}`:m==='happy'?`, ${pctS(c.v)} followed the reference flow`:'')+(small?' (fewer than 3 with a value, not coloured)':''); }
+      s+=`<g><title>${xmlEsc(tip)}</title><rect x="${x+1}" y="${y+1}" width="${cw-2}" height="${ch-2}" fill="${fill}" stroke="${PAL.rule}" stroke-width="0.6"/>${txt!==''?`<text x="${x+cw/2}" y="${y+ch/2+3.5}" text-anchor="middle" font-size="9" fill="${tc}">${txt}</text>`:''}</g>`; } });
+  const unit=m==='n'?cases.charAt(0).toUpperCase()+cases.slice(1):m==='dur'?`Median ${SCH.durLabel}, hours`:'% following the reference flow';
+  s+=`<text x="${L}" y="${H-8}" font-size="10" fill="${PAL.ink2}">${xmlEsc(unit+' · by '+basisLabel+' day and hour · grey = fewer than 3 with a value')}</text></svg>`; return {svg:s,w:W,h:H};
+}
+function renderEncSvg(r,T){
+  const S=SCH, med={}; for(const t of T) med[t.k]=t.d.med;
+  const base=r.t0||(r.ev[0]&&r.ev[0].t); if(!base) return emptySvg('No step times recorded.');
+  const pts=S.steps.map(e=>({e,a:r.t[e.k]?mins(r.t[e.k],base):null,m:(r.t0&&e.k!==S.start&&med[e.k]!=null)?med[e.k]:(e.k===S.start&&r.t0?0:null)}));
+  const vals=pts.flatMap(p=>[p.a,p.m]).filter(v=>v!=null); let lo=Math.min(0,...vals), hi=Math.max(30,...vals);
+  const pad=(hi-lo)*0.03; lo=lo<0?lo-pad:0; hi+=pad; const st=niceStep(hi-lo,8);
+  const W=860,LW=210,RW=150,rowH=26,top=30,H=top+pts.length*rowH+30, X=v=>LW+(v-lo)/(hi-lo)*(W-LW-RW);
+  let s=svgOpen(W,H);
+  for(let v=Math.ceil(lo/st)*st;v<=hi+1e-9;v+=st) s+=`<line x1="${X(v)}" x2="${X(v)}" y1="${top-8}" y2="${H-26}" stroke="${v===0?PAL.teal:PAL.rule}"${v===0?' stroke-dasharray="5 5"':''}/><text x="${X(v)}" y="${top-14}" text-anchor="middle" font-size="10" fill="${v===0?PAL.teal:PAL.ink2}">${v===0?xmlEsc(r.t0?shortL(S.start):'First step'):tickLab(v)}</text>`;
+  const eA=mins(r.t1,base); s+=`<line x1="${X(eA)}" x2="${X(eA)}" y1="${top-4}" y2="${H-26}" stroke="${PAL.ink}" stroke-width="1" stroke-dasharray="2 3"/>`;
+  pts.forEach((p,i)=>{ const y=top+i*rowH+rowH/2, isS=p.e.k===S.start;
+    s+=`<text x="${LW-10}" y="${y+4}" text-anchor="end" font-size="11.5" font-weight="600" fill="${p.a==null?PAL.ink3:PAL.ink}">${xmlEsc(p.e.l)}</text>`;
+    if(p.a!=null&&p.m!=null&&!isS){ const late=p.a>p.m; s+=`<line x1="${X(p.m)}" x2="${X(p.a)}" y1="${y}" y2="${y}" stroke="${late?SEM.alert:PAL.teal}" stroke-width="3" opacity="0.55"/>`; }
+    if(p.m!=null&&!isS) s+=`<path d="M${X(p.m)},${y-6} L${X(p.m)+6},${y} L${X(p.m)},${y+6} L${X(p.m)-6},${y} z" fill="#FFFFFF" stroke="${PAL.ink2}" stroke-width="1.4"/>`;
+    if(p.a!=null) s+=`<rect x="${X(p.a)-5}" y="${y-5}" width="10" height="10" fill="${p.e.k===S.end?PAL.teal:PAL.ink}"/>`;
+    const txt=p.a==null?'not recorded':(isS?fmtDT(r.t0).slice(-5):`${p.a>=0?'+':''}${fmtMin(p.a)}`+(p.m!=null?`  (${p.a-p.m>=0?'+':'−'}${fmtMin(Math.abs(p.a-p.m))} vs median)`:''));
+    s+=`<text x="${W-RW+8}" y="${y+4}" font-size="10.5" fill="${p.a==null?PAL.ink3:(p.m!=null&&p.a>p.m&&!isS?SEM.alert:PAL.ink)}">${xmlEsc(txt)}</text>`; });
+  const ly=H-10; s+=`<rect x="${LW-5}" y="${ly-9}" width="10" height="10" fill="${PAL.ink}"/><text x="${LW+10}" y="${ly}" font-size="10.5" fill="${PAL.ink}">This ${xmlEsc(S.terms.case)}</text><path d="M${LW+132},${ly-10} L${LW+138},${ly-4} L${LW+132},${ly+2} L${LW+126},${ly-4} z" fill="#FFFFFF" stroke="${PAL.ink2}" stroke-width="1.4"/><text x="${LW+144}" y="${ly}" font-size="10.5" fill="${PAL.ink}">Median of the filtered ${xmlEsc(S.terms.cases)}</text><line x1="${LW+400}" x2="${LW+420}" y1="${ly-4}" y2="${ly-4}" stroke="${SEM.alert}" stroke-width="3" opacity="0.55"/><text x="${LW+426}" y="${ly}" font-size="10.5" fill="${PAL.ink}">later than median</text></svg>`;
+  return {svg:s,w:W,h:H};
+}
+
+/* =====================================================================
+   Analysis bundle, findings, draft recommendations
+   ===================================================================== */
+function analyse(view,o){
+  const model=buildModel(view), ref=o.ref, refKey=o.refKey;
+  const A={view,model,ref,refKey,order:layoutOrder(model,ref),st:stats(view,refKey),T:milestoneTiming(view),L:lastMilestone(view),RS:reasonTables(view),slow:slowEdges(model)};
+  A.timing=Object.fromEntries(A.T.map(t=>[t.k,t]));
+  const dt=breakdown(view,r=>r.dayType,refKey); A.wk={Weekday:dt.find(x=>x.key==='Weekday'),Weekend:dt.find(x=>x.key==='Weekend')};
+  A.dows=breakdown(view,r=>r.dowL,refKey).sort((a,b)=>DAY_ORDER.indexOf(DAYS.indexOf(a.key))-DAY_ORDER.indexOf(DAYS.indexOf(b.key)));
+  A.groups=SCH.attrs.map(a=>({a,list:breakdown(view,r=>r.attr[a.col],refKey).sort((x,y)=>y.n-x.n)}));
+  A.findings=findings(A,o.minN||10,o.basisLabel||shortL(SCH.start));
+  return A;
+}
+function findings(A,minN,basisLabel){
+  const F=[], st=A.st, V=A.model.variants, T=SCH.terms;
+  if(!st.n) return F;
+  if(st.dur.n) F.push(`Median time ${SCH.durLabel}: ${fmtMin(st.dur.med)} (middle half ${fmtMin(st.dur.p25)} to ${fmtMin(st.dur.p75)}; 90th percentile ${fmtMin(st.dur.p90)}; ${st.dur.n.toLocaleString()} ${T.cases} with both times).`);
+  if(st.dueN) F.push(`${pctS(st.due)} ended on or before the due date (${st.dueN.toLocaleString()} ${T.cases} with a due date recorded).`);
+  const top5=V.slice(0,5).reduce((a,v)=>a+v.n,0);
+  F.push(`${V.length.toLocaleString()} distinct step sequences were recorded. The reference flow was followed exactly by ${pctS(st.conf)}; the five most common sequences cover ${pctS(top5/st.n)}.`);
+  const slow=[...A.model.edges.values()].filter(e=>A.slow.has(e.key)).sort((a,b)=>b.st.med-a.st.med);
+  if(slow.length) F.push(`Longest median wait between consecutive steps: ${EVL(slow[0].a)} → ${EVL(slow[0].b)}, ${fmtMin(slow[0].st.med)} (${slow[0].st.n.toLocaleString()} ${T.cases}).`);
+  const L0=A.L.find(x=>x.k!=='none'); if(L0) F.push(`The step most often completed last before the end was ${EVL(L0.k)} (${pctS(L0.p)} of ${T.cases}), followed by a median ${fmtMin(L0.st.med)} until ${EVL(SCH.end).toLowerCase()}.`);
+  const low=A.T.filter(t=>t.k!==SCH.end&&t.recP!=null&&t.recP<0.9).sort((a,b)=>a.recP-b.recP);
+  if(low.length) F.push(`Steps recorded for fewer than 90% of ${T.cases}: ${low.map(t=>`${t.l} (${pctS(t.recP)})`).join(', ')}.`);
+  const post=A.T.filter(t=>t.after!=null&&t.after>=0.2).sort((a,b)=>b.after-a.after);
+  if(post.length) F.push(`Recorded after the end step, where recorded: ${post.map(t=>`${t.l} ${pctS(t.after)}`).join(', ')}.`);
+  const tr=topReason(A.view); if(tr) F.push(`${pctS(st.reason)} of ${T.cases} have at least one delay reason recorded. The most frequent is "${tr.v}" (${tr.cat}, ${tr.n.toLocaleString()} ${T.cases}).`);
+  const wd=A.wk.Weekday, we=A.wk.Weekend;
+  if(wd&&we&&wd.n>=minN&&we.n>=minN) F.push(`By ${basisLabel} day: weekend median ${fmtMin(we.st.dur.med)} (n ${we.n}) against weekday ${fmtMin(wd.st.dur.med)} (n ${wd.n}).`);
+  for(const g of A.groups){ const W=g.list.filter(w=>w.n>=minN&&w.st.dur.med!=null&&w.key!=='Not recorded').sort((a,b)=>b.st.dur.med-a.st.dur.med);
+    if(W.length>=2&&W[0].st.dur.med-W[W.length-1].st.dur.med>=30) F.push(`By ${g.a.l.toLowerCase()} (groups with at least ${minN} ${T.cases}): the longest median is ${W[0].key} (${fmtMin(W[0].st.dur.med)}, n ${W[0].n}), the shortest ${W[W.length-1].key} (${fmtMin(W[W.length-1].st.dur.med)}, n ${W[W.length-1].n}).`); }
+  return F;
+}
+function draftRecs(A,minN,basisLabel){
+  const R=[], st=A.st, T=SCH.terms; if(!st.n) return '';
+  const slow=[...A.model.edges.values()].filter(e=>A.slow.has(e.key)).sort((a,b)=>b.st.med-a.st.med);
+  if(slow.length) R.push(`Review the ${EVL(slow[0].a)} → ${EVL(slow[0].b)} handoff with the teams involved; it has the longest median wait between consecutive steps (${fmtMin(slow[0].st.med)}).`);
+  const L0=A.L.find(x=>x.k!=='none'); if(L0) R.push(`Agree with the owners of ${EVL(L0.k)} how it can be completed earlier or in parallel; it is most often the last step before the end (${pctS(L0.p)} of ${T.cases}).`);
+  const tr=topReason(A.view); if(tr) R.push(`Work with the relevant team on the most recorded delay reason, "${tr.v}" (${tr.cat}, ${tr.n} ${T.cases}).`);
+  const wd=A.wk.Weekday, we=A.wk.Weekend;
+  if(wd&&we&&wd.n>=minN&&we.n>=minN&&we.st.dur.med-wd.st.dur.med>=30) R.push(`Look at weekend cover for these steps: the median ${SCH.durLabel} is ${fmtMin(we.st.dur.med-wd.st.dur.med)} longer at weekends (by ${basisLabel} day).`);
+  const low=A.T.filter(t=>t.k!==SCH.end&&t.recP!=null&&t.recP<0.8);
+  if(low.length) R.push(`Improve recording of ${low.map(t=>t.l).join(', ')} so these steps can be measured reliably.`);
+  return R.map(x=>'• '+x).join('\n');
+}
+
+/* =====================================================================
+   ZIP writer and PPTX writer (stored zip, hand-written OOXML)
+   ===================================================================== */
+const CRC_T=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC_T[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+// deflate (optional): a function returning raw-deflated bytes; without it entries are stored.
+function zipStore(entries,deflate){
+  const te=new TextEncoder(), parts=[], cd=[]; let off=0;
+  for(const e of entries){ const nm=te.encode(e.name), d=typeof e.data==='string'?te.encode(e.data):e.data, crc=crc32(d);
+    const z=deflate?deflate(d):d, method=deflate?8:0;
+    const lh=new DataView(new ArrayBuffer(30)); lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,method,true);
+    lh.setUint16(12,0x21,true); lh.setUint32(14,crc,true); lh.setUint32(18,z.length,true); lh.setUint32(22,d.length,true); lh.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(lh.buffer),nm,z);
+    const ch=new DataView(new ArrayBuffer(46)); ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,method,true);
+    ch.setUint16(14,0x21,true); ch.setUint32(16,crc,true); ch.setUint32(20,z.length,true); ch.setUint32(24,d.length,true); ch.setUint16(28,nm.length,true); ch.setUint32(42,off,true);
+    cd.push(new Uint8Array(ch.buffer),nm); off+=30+nm.length+z.length; }
+  const cdSize=cd.reduce((a,b)=>a+b.length,0), eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true); eo.setUint16(8,entries.length,true); eo.setUint16(10,entries.length,true); eo.setUint32(12,cdSize,true); eo.setUint32(16,off,true);
+  const all=[...parts,...cd,new Uint8Array(eo.buffer)], out=new Uint8Array(all.reduce((a,b)=>a+b.length,0)); let p=0; for(const a of all){ out.set(a,p); p+=a.length; } return out;
+}
+const NS='xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+const XH='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const RT='http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+const emu=i=>Math.round(i*914400);
+const hx=c=>(c||PAL.ink).replace('#','').toUpperCase();
+const OFFICE_FONT='Segoe UI';
+function runXml(r){ return `<a:r><a:rPr lang="en-GB" sz="${Math.round((r.sz||12)*100)}"${r.b?' b="1"':''}${r.i?' i="1"':''} dirty="0"><a:solidFill><a:srgbClr val="${hx(r.color)}"/></a:solidFill><a:latin typeface="${OFFICE_FONT}"/><a:cs typeface="${OFFICE_FONT}"/></a:rPr><a:t>${xmlEsc(r.t)}</a:t></a:r>`; }
+function paraXml(p){ const runs=p.runs||[{t:p.t,sz:p.sz,b:p.b,color:p.color}];
+  const ppr=`<a:pPr algn="${p.algn||'l'}"${p.bullet?' marL="228600" indent="-228600"':''}>${p.spcAft?`<a:spcAft><a:spcPts val="${p.spcAft*100}"/></a:spcAft>`:''}${p.bullet?`<a:buClr><a:srgbClr val="${hx(PAL.teal)}"/></a:buClr><a:buFont typeface="Segoe UI"/><a:buChar char="■"/>`:'<a:buNone/>'}</a:pPr>`;
+  return `<a:p>${ppr}${runs.map(runXml).join('')}<a:endParaRPr lang="en-GB" sz="${Math.round((runs[0].sz||12)*100)}" dirty="0"/></a:p>`; }
+function spXml(id,o){ const E=emu;
+  return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Shape ${id}"/><p:cNvSpPr${o.paras?' txBox="1"':''}/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.w)}" cy="${E(o.h)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>${o.fill?`<a:solidFill><a:srgbClr val="${hx(o.fill)}"/></a:solidFill>`:'<a:noFill/>'}${o.line?`<a:ln w="${Math.round((o.lineW||0.75)*12700)}"><a:solidFill><a:srgbClr val="${hx(o.line)}"/></a:solidFill></a:ln>`:'<a:ln><a:noFill/></a:ln>'}</p:spPr>`+
+   (o.paras?`<p:txBody><a:bodyPr wrap="square" lIns="${E(o.inset!=null?o.inset:0.08)}" tIns="${E(0.05)}" rIns="${E(o.inset!=null?o.inset:0.08)}" bIns="${E(0.05)}" anchor="${o.anchor||'t'}" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${o.paras.map(paraXml).join('')}</p:txBody>`:'')+`</p:sp>`; }
+function picXml(id,rid,o){ const E=emu; return `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="Picture ${id}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.w)}" cy="${E(o.h)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`; }
+function tblXml(id,o){ const E=emu, w=o.colW.reduce((a,b)=>a+b,0), h=o.rowH*o.rows.length;
+  const rows=o.rows.map((row,ri)=>`<a:tr h="${E(o.rowH)}">`+row.map((c,ci)=>{ c=(c!==null&&typeof c==='object')?c:{t:c}; const hdr=ri===0;
+    const fill=c.fill||(hdr?PAL.ink:(ri%2===0?PAL.cream:'#FFFFFF')), col=c.color||(hdr?PAL.cream:PAL.ink);
+    return `<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>${paraXml({algn:c.algn||(ci===0?'l':'r'),runs:[{t:String(c.t==null?'':c.t),sz:c.sz||o.sz||10,b:hdr||c.b,color:col}]})}</a:txBody><a:tcPr marL="${E(.07)}" marR="${E(.07)}" marT="${E(.03)}" marB="${E(.03)}" anchor="ctr"><a:lnL w="0"><a:noFill/></a:lnL><a:lnR w="0"><a:noFill/></a:lnR><a:lnT w="0"><a:noFill/></a:lnT><a:lnB w="6350"><a:solidFill><a:srgbClr val="${hx(PAL.rule)}"/></a:solidFill></a:lnB><a:solidFill><a:srgbClr val="${hx(fill)}"/></a:solidFill></a:tcPr></a:tc>`; }).join('')+`</a:tr>`).join('');
+  return `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${id}" name="Table ${id}"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp="1"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(w)}" cy="${E(h)}"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"/><a:tblGrid>${o.colW.map(c=>`<a:gridCol w="${E(c)}"/>`).join('')}</a:tblGrid>${rows}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`; }
+
+class Deck{
+  constructor(title){ this.title=title; this.slides=[]; this.media=[]; }
+  slide(){ const s={xml:[],rels:[],id:2}; this.slides.push(s); return s; }
+  text(s,o){ s.xml.push(spXml(s.id++,o)); }
+  rect(s,o){ s.xml.push(spXml(s.id++,o)); }
+  table(s,o){ s.xml.push(tblXml(s.id++,o)); }
+  image(s,png,pw,ph,box){ const idx=this.media.length+1; this.media.push(png); const rid='rId'+(s.rels.length+2); s.rels.push({rid,target:`../media/image${idx}.png`});
+    const k=Math.min(box.w/pw,box.h/ph), w=pw*k, h=ph*k; s.xml.push(picXml(s.id++,rid,{x:box.x+(box.w-w)/2,y:box.y,w,h})); return h; }
+  build(){
+    const n=this.slides.length, E=[];
+    E.push({name:'[Content_Types].xml',data:XH+`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>${this.slides.map((s,i)=>`<Override PartName="/ppt/slides/slide${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`});
+    E.push({name:'_rels/.rels',data:XH+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="${RT}extended-properties" Target="docProps/app.xml"/></Relationships>`});
+    // document properties carry the report title and the tool name only: no author, company or file path
+    E.push({name:'docProps/core.xml',data:XH+`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xmlEsc(this.title)}</dc:title><dc:creator>Proxy Process Explorer</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().slice(0,19)}Z</dcterms:created></cp:coreProperties>`});
+    E.push({name:'docProps/app.xml',data:XH+`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Proxy Process Explorer</Application><Slides>${n}</Slides></Properties>`});
+    E.push({name:'ppt/presentation.xml',data:XH+`<p:presentation ${NS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${this.slides.map((s,i)=>`<p:sldId id="${256+i}" r:id="rId${10+i}"/>`).join('')}</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`});
+    E.push({name:'ppt/_rels/presentation.xml.rels',data:XH+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}slideMaster" Target="slideMasters/slideMaster1.xml"/><Relationship Id="rId2" Type="${RT}theme" Target="theme/theme1.xml"/><Relationship Id="rId3" Type="${RT}presProps" Target="presProps.xml"/><Relationship Id="rId4" Type="${RT}viewProps" Target="viewProps.xml"/><Relationship Id="rId5" Type="${RT}tableStyles" Target="tableStyles.xml"/>${this.slides.map((s,i)=>`<Relationship Id="rId${10+i}" Type="${RT}slide" Target="slides/slide${i+1}.xml"/>`).join('')}</Relationships>`});
+    E.push({name:'ppt/presProps.xml',data:XH+`<p:presentationPr ${NS}/>`});
+    E.push({name:'ppt/viewProps.xml',data:XH+`<p:viewPr ${NS}><p:gridSpacing cx="76200" cy="76200"/></p:viewPr>`});
+    E.push({name:'ppt/tableStyles.xml',data:XH+`<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>`});
+    const grp='<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>';
+    E.push({name:'ppt/slideMasters/slideMaster1.xml',data:XH+`<p:sldMaster ${NS}><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="${hx(PAL.cream)}"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree>${grp}</p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles></p:sldMaster>`});
+    E.push({name:'ppt/slideMasters/_rels/slideMaster1.xml.rels',data:XH+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="${RT}theme" Target="../theme/theme1.xml"/></Relationships>`});
+    E.push({name:'ppt/slideLayouts/slideLayout1.xml',data:XH+`<p:sldLayout ${NS} type="blank" preserve="1"><p:cSld name="Blank"><p:spTree>${grp}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`});
+    E.push({name:'ppt/slideLayouts/_rels/slideLayout1.xml.rels',data:XH+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>`});
+    const sc=(n,c)=>`<a:${n}><a:srgbClr val="${c}"/></a:${n}>`, ph='<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>';
+    E.push({name:'ppt/theme/theme1.xml',data:XH+`<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="mmonfar"><a:themeElements><a:clrScheme name="mmonfar">${sc('dk1','17242B')}${sc('lt1','FDFBF7')}${sc('dk2','1E2A32')}${sc('lt2','E3E5E4')}${sc('accent1','008080')}${sc('accent2','00A3A3')}${sc('accent3','60AFAD')}${sc('accent4','89C2C0')}${sc('accent5','ACD4D1')}${sc('accent6','BBDBD8')}${sc('hlink','008080')}${sc('folHlink','60AFAD')}</a:clrScheme><a:fontScheme name="mmonfar"><a:majorFont><a:latin typeface="Segoe UI Semibold"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Segoe UI"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Plain"><a:fillStyleLst>${ph}${ph}${ph}</a:fillStyleLst><a:lnStyleLst><a:ln w="6350">${ph}</a:ln><a:ln w="12700">${ph}</a:ln><a:ln w="19050">${ph}</a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst>${ph}${ph}${ph}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`});
+    this.slides.forEach((s,i)=>{
+      E.push({name:`ppt/slides/slide${i+1}.xml`,data:XH+`<p:sld ${NS}><p:cSld><p:spTree>${grp}${s.xml.join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`});
+      E.push({name:`ppt/slides/_rels/slide${i+1}.xml.rels`,data:XH+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}slideLayout" Target="../slideLayouts/slideLayout1.xml"/>${s.rels.map(r=>`<Relationship Id="${r.rid}" Type="${RT}image" Target="${r.target}"/>`).join('')}</Relationships>`}); });
+    this.media.forEach((m,i)=>E.push({name:`ppt/media/image${i+1}.png`,data:m}));
+    return zipStore(E);
+  }
+}
+
+/* ---------- report deck ---------- */
+function buildDeck(A,ctx,img){
+  const S=SCH, T=S.terms, Tc=T.cases.charAt(0).toUpperCase()+T.cases.slice(1);
+  const D=new Deck(`${S.name} review`), SW=13.333, st=A.st;
+  const frame=(s,title,sub,num)=>{ D.rect(s,{x:0.5,y:0.3,w:0.5,h:0.04,fill:PAL.teal});
+    D.text(s,{x:0.45,y:0.4,w:12.4,h:0.55,paras:[{t:title,sz:24,b:true,color:PAL.ink}]});
+    if(sub) D.text(s,{x:0.45,y:0.94,w:12.4,h:0.45,paras:[{t:sub,sz:12,color:PAL.ink2}]});
+    D.rect(s,{x:0.5,y:7.02,w:12.33,h:0.01,fill:PAL.rule});
+    D.text(s,{x:0.45,y:7.06,w:10.8,h:0.3,paras:[{t:`${ctx.scope} · Aggregate data only · Generated ${ctx.generated}`,sz:8,color:PAL.ink2}]});
+    D.text(s,{x:11.8,y:7.06,w:1.03,h:0.3,paras:[{t:String(num),sz:8,color:PAL.ink2,algn:'r'}]}); };
+  const pic=(s,im,box)=>im?D.image(s,im.png,im.w,im.h,box):0;
+  let k=1, s;
+  // title
+  s=D.slide(); D.rect(s,{x:0,y:0,w:SW,h:7.5,fill:PAL.ink}); D.rect(s,{x:0.8,y:2.35,w:0.9,h:0.05,fill:PAL.teal});
+  D.text(s,{x:0.8,y:2.55,w:11.5,h:1.0,paras:[{t:`${S.name} review`,sz:40,b:true,color:PAL.cream}]});
+  D.text(s,{x:0.8,y:3.5,w:11.5,h:0.6,paras:[{t:`From ${EVL(S.start).toLowerCase()} to ${EVL(S.end).toLowerCase()}: timings, variation from the reference flow and delays`,sz:18,color:PAL.t5}]});
+  D.text(s,{x:0.8,y:4.6,w:11.5,h:1.6,paras:[{t:`Period: ${ctx.period}`,sz:13,color:PAL.cream,spcAft:4},{t:`Scope: ${ctx.scope}`,sz:13,color:PAL.cream,spcAft:4},{t:`${st.n.toLocaleString()} ${T.cases} analysed`,sz:13,color:PAL.cream,spcAft:4},{t:`Generated ${ctx.generated} · aggregate data only`,sz:11,color:PAL.t4}]});
+  k++;
+  // KPIs
+  s=D.slide(); frame(s,'Headline results','All times are calculated from the step timestamps in the file',k++);
+  const K=[[fmtMin(st.dur.med),`Median ${S.durLabel}`,`P75 ${fmtMin(st.dur.p75)} · P90 ${fmtMin(st.dur.p90)} · n ${st.dur.n}`],
+    [pctS(st.conf),'Followed the reference flow',`${A.model.variants.length} distinct sequences`],[st.n.toLocaleString(),`${Tc} analysed`,ctx.period]];
+  if(st.dueN) K.push([pctS(st.due),'Ended by the due date',`${st.dueN.toLocaleString()} with a due date`]);
+  if(S.reasons.length) K.push([pctS(st.reason),'Any delay reason recorded',S.reasons.map(r=>r.l).join(', ')]);
+  (ctx.kpiExtra||[]).forEach(x=>K.push(x));
+  K.slice(0,6).forEach((c,i)=>{ const x=0.5+(i%3)*4.15, y=1.5+Math.floor(i/3)*1.45;
+    D.rect(s,{x,y,w:3.95,h:1.25,fill:'#FFFFFF',line:PAL.rule}); D.rect(s,{x,y,w:0.05,h:1.25,fill:PAL.teal});
+    D.text(s,{x:x+0.2,y:y+0.08,w:3.6,h:0.6,paras:[{t:c[0],sz:26,b:true,color:PAL.ink}]});
+    D.text(s,{x:x+0.2,y:y+0.66,w:3.6,h:0.3,paras:[{t:c[1],sz:12,b:true,color:PAL.ink2}]});
+    D.text(s,{x:x+0.2,y:y+0.93,w:3.6,h:0.28,paras:[{t:c[2],sz:9.5,color:PAL.ink2}]}); });
+  D.text(s,{x:0.5,y:4.55,w:12.3,h:2.4,paras:A.findings.slice(0,5).map(t=>({t,sz:11.5,color:PAL.ink,bullet:true,spcAft:4}))});
+  // map
+  s=D.slide(); frame(s,'Process map: reference flow and variations',`Arrows show which step directly followed which; labels show % of ${T.cases} (count)`,k++);
+  const mh=pic(s,img.map,{x:0.5,y:1.5,w:12.33,h:4.55});
+  D.text(s,{x:0.5,y:1.6+mh,w:12.3,h:0.5,paras:[{runs:[{t:'Reference flow: ',sz:10.5,b:true,color:PAL.ink},{t:ctx.refLabel,sz:10.5,color:PAL.ink}]}]});
+  D.text(s,{x:0.5,y:Math.min(6.45,2.2+mh),w:12.3,h:0.5,paras:[{runs:[{t:'Dark: reference flow.  ',sz:10,b:true,color:PAL.ink},{t:'Above: skips ahead of the reference order.  ',sz:10,color:SEM.skip},{t:'Below: recorded earlier than the reference order.  ',sz:10,color:SEM.alert},{t:'Grey: other direct steps. '+(ctx.post?'':'Steps recorded after the end step are excluded.'),sz:10,color:PAL.ink2}]}]});
+  // variants
+  s=D.slide(); frame(s,'Sequences compared with the reference flow','Most common step sequences and how each differs from the reference',k++);
+  const V=A.model.variants.slice(0,11);
+  const vr=[['#',{t:'Difference from reference flow',algn:'l'},Tc,'% of total',`Median ${S.durLabel}`]].concat(V.map((v,i)=>{ const d=deviations(v.trace,A.ref,ctx.vmode), ref=v.key===A.refKey, f=ref?PAL.t6:null;
+    return [{t:i+1,fill:f,algn:'l'},{t:ref?'Reference flow':d.map(x=>x.l).join(' · ')||'Same steps, same order',fill:f,b:ref,algn:'l'},{t:v.n.toLocaleString(),fill:f},{t:pctS(v.n/st.n),fill:f},{t:fmtMin(v.st.med),fill:f}]; }));
+  D.table(s,{x:0.5,y:1.5,colW:[0.45,7.4,1.4,1.3,1.75],rowH:0.42,rows:vr,sz:10});
+  // timing
+  s=D.slide(); frame(s,`Where time goes, measured from ${EVL(S.start).toLowerCase()}`,`Box: middle half of ${T.cases}; teal line: median; whisker: 75th to 90th percentile`,k++);
+  pic(s,img.timing,{x:0.5,y:1.45,w:6.9,h:4.2});
+  const tr=[['Step','Recorded','Median','P90',`Before start`,'After end']].concat(A.T.map(t=>[{t:t.l,algn:'l'},pctS(t.recP),fmtMin(t.d.med),fmtMin(t.d.p90),pctS(t.before),t.after==null?'–':pctS(t.after)]));
+  D.table(s,{x:7.55,y:1.45,colW:[1.8,0.82,0.66,0.6,0.7,0.7],rowH:0.4,rows:tr,sz:8.5});
+  // bottlenecks
+  s=D.slide(); frame(s,'Bottlenecks','Slowest direct transitions, and which step was last to be completed before the end',k++);
+  const minE=Math.max(5,Math.ceil(st.n*0.02));
+  const E=[...A.model.edges.values()].filter(e=>e.a!=='S'&&e.b!=='E'&&e.a!==S.end&&e.st.n>=minE).sort((a,b)=>b.st.med-a.st.med).slice(0,8);
+  D.table(s,{x:0.5,y:1.5,colW:[3.9,0.9,1.0,1.0],rowH:0.38,sz:10,rows:[['Transition','n','Median','P90']].concat(E.map(e=>[{t:`${EVL(e.a)} → ${EVL(e.b)}`,algn:'l'},e.n,fmtMin(e.st.med),fmtMin(e.st.p90)]))});
+  D.text(s,{x:7.6,y:1.45,w:5.2,h:0.3,paras:[{t:'Last step before the end',sz:11,b:true,color:PAL.ink2}]});
+  pic(s,img.last,{x:7.6,y:1.8,w:5.25,h:4.6});
+  D.text(s,{x:0.5,y:5.2,w:6.8,h:1.6,paras:[{t:`Transitions shown have at least ${minE} ${T.cases}. A transition is the time between one step and the next one recorded for the same ${T.case}.`,sz:10,color:PAL.ink2}]});
+  // reasons
+  if(A.RS.length){ s=D.slide(); frame(s,'Recorded delay reasons',`Share of ${T.cases} with each reason, and median ${S.durLabel} for them`,k++);
+    A.RS.slice(0,4).forEach((R,i)=>{ const x=0.5+(i%2)*6.25, y=1.45+Math.floor(i/2)*2.75;
+      D.text(s,{x,y,w:6,h:0.3,paras:[{t:`${R.l}: ${R.any.toLocaleString()} ${T.cases} (${pctS(R.anyP)})`,sz:11,b:true,color:PAL.ink}]});
+      const rows=[['Reason','n','%','Median']].concat(R.rows.slice(0,5).map(x=>[{t:x.v.length>48?x.v.slice(0,46)+'…':x.v,algn:'l'},x.n,pctS(x.p),fmtMin(x.st.med)]));
+      if(R.rows.length) D.table(s,{x,y:y+0.35,colW:[3.7,0.6,0.7,0.9],rowH:0.34,rows,sz:9}); else D.text(s,{x,y:y+0.35,w:6,h:0.4,paras:[{t:'None recorded.',sz:10,color:PAL.ink2}]}); }); }
+  // groups: one slide per attribute (first four)
+  for(const g of A.groups.slice(0,4)){ s=D.slide(); frame(s,`Differences by ${g.a.l.toLowerCase()}`,`Largest groups first. Bold: median more than 25% above the overall median (groups with at least ${ctx.minN} ${T.cases})`,k++);
+    const ext=ctx.groupCols||[];
+    const rows=[[g.a.l,'n','Median','P90','Ref. flow'].concat(st.dueN?['By due date']:[]).concat(ext.map(c=>c.l))].concat(g.list.slice(0,12).map(x=>{ const hi=x.st.dur.med!=null&&st.dur.med!=null&&x.n>=ctx.minN&&x.st.dur.med>st.dur.med*1.25;
+      return [{t:x.key,algn:'l'},x.n,{t:fmtMin(x.st.dur.med)+(hi?' ▲':''),b:hi},fmtMin(x.st.dur.p90),pctS(x.st.conf)].concat(st.dueN?[pctS(x.st.due)]:[]).concat(ext.map(c=>c.f(x))); }));
+    rows.push([{t:'All',b:true},{t:st.n,b:true},{t:fmtMin(st.dur.med),b:true},{t:fmtMin(st.dur.p90),b:true},{t:pctS(st.conf),b:true}].concat(st.dueN?[{t:pctS(st.due),b:true}]:[]).concat(ext.map(c=>({t:c.f({st,recs:A.view}),b:true}))));
+    const nC=rows[0].length, cw=[3.4].concat(Array(nC-1).fill(Math.min(1.5,8.9/(nC-1))));
+    D.table(s,{x:0.5,y:1.5,colW:cw,rowH:0.36,rows,sz:9.5}); }
+  // weekday / weekend
+  s=D.slide(); frame(s,'Weekdays and weekends',`Day taken from the ${ctx.basisLabel} time; weekend = ${ctx.weekendLabel}`,k++);
+  const wrow=[['','n','Median','P75','P90','Ref. flow','Delay reason']].concat(['Weekday','Weekend'].map(key=>{ const x=A.wk[key]; return x?[{t:key,algn:'l',b:true},x.n,fmtMin(x.st.dur.med),fmtMin(x.st.dur.p75),fmtMin(x.st.dur.p90),pctS(x.st.conf),pctS(x.st.reason)]:[{t:key,algn:'l'},0,'–','–','–','–','–']; }))
+    .concat(A.dows.map(x=>[{t:x.key,algn:'l'},x.n,fmtMin(x.st.dur.med),fmtMin(x.st.dur.p75),fmtMin(x.st.dur.p90),pctS(x.st.conf),pctS(x.st.reason)]));
+  D.table(s,{x:0.5,y:1.5,colW:[1.4,0.7,0.95,0.95,0.95,1.0,1.1],rowH:0.32,rows:wrow,sz:9});
+  pic(s,img.hour,{x:0.5,y:4.75,w:8.4,h:2.2});
+  D.text(s,{x:9.1,y:1.5,w:3.75,h:5.4,paras:[{t:'Hour of the first and last step',sz:11,b:true,color:PAL.ink2,spcAft:6},{t:`The chart shows when ${EVL(S.start).toLowerCase()} and ${EVL(S.end).toLowerCase()} happen, by hour, for all filtered ${T.cases}.`,sz:10,color:PAL.ink2}]});
+  // slides added by optional modules (rules and risk)
+  if(ctx.extraSlides) k=ctx.extraSlides(D,frame,pic,k);
+  // heat
+  s=D.slide(); frame(s,'Time-of-day and day-of-week pattern',ctx.heatLabel,k++);
+  pic(s,img.heat,{x:0.5,y:1.5,w:12.33,h:4.8});
+  // findings + recommendations
+  s=D.slide(); frame(s,'Findings',null,k++);
+  D.text(s,{x:0.5,y:1.15,w:12.3,h:5.8,paras:A.findings.map(t=>({t,sz:12,color:PAL.ink,bullet:true,spcAft:7}))});
+  if(ctx.recText&&ctx.recText.trim()){ s=D.slide(); frame(s,'Recommendations',null,k++);
+    D.text(s,{x:0.5,y:1.15,w:12.3,h:5.8,paras:ctx.recText.split(/\n+/).map(x=>x.replace(/^\s*[•\-*]\s*/,'').trim()).filter(Boolean).map(t=>({t,sz:13,color:PAL.ink,bullet:true,spcAft:8}))}); }
+  // method
+  s=D.slide(); frame(s,'Method and limitations',null,k++);
+  D.text(s,{x:0.5,y:1.15,w:12.3,h:5.8,paras:[
+    `Source: one row per ${T.case}, with one timestamp column per step. Only rows with a time in the end step (${EVL(S.end)}) are included.`,
+    `Each ${T.case} is turned into a sequence by sorting its step timestamps. A step counts as done when its timestamp is present; steps with the same timestamp keep the configured step order.`,
+    'This is proxy process mining: there is one timestamp per step, not an event log with activities, resources and repeated events. Loops, rework and who did each step cannot be seen, and conformance is a comparison with the reference flow, not a fitted process model.',
+    `Reference flow: ${ctx.refLabel}. "Followed the reference flow" means the same steps in the same order, nothing missing or added.`,
+    `Weekday or weekend is taken from the ${ctx.basisLabel} time; weekend days: ${ctx.weekendLabel}.`,
+    'Delay reasons are counted exactly as recorded; free-text variants of the same reason are counted separately.',
+    ctx.post?'Steps recorded after the end step are included in the sequences.':'Steps recorded after the end step are excluded from the sequences but kept in the timing table.'
+  ].concat(ctx.dq||[]).map(t=>({t,sz:11.5,color:PAL.ink,bullet:true,spcAft:7}))});
+  return D.build();
+}
+
+/* =====================================================================
+   Synthetic sample: a seeded, fully made-up discharge process
+   ===================================================================== */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+// Delay reasons follow categories common in the published literature on discharge delay
+// (medicines to take home, transport, results, senior review, family, community care, placement, documentation).
+const SYNTH_REASONS={
+  nursing:['Awaiting family or carer to collect','Patient not ready to leave','Awaiting equipment for home','Education for self-care not completed'],
+  pharmacy:['Awaiting medicines to take home','Prescription query to prescriber','Controlled drug check pending','Stock not available on ward'],
+  other:['Awaiting transport','Awaiting test results','Awaiting senior review','Awaiting community care package','Awaiting placement at receiving facility','Discharge letter not completed']
+};
+function synthRows(seed,n){
+  const rnd=mulberry32(seed||42); n=n||1200;
+  const pick=a=>a[Math.floor(rnd()*a.length)], norm=()=>{ let u=0,v=0; while(!u) u=rnd(); while(!v) v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+  const logn=(med,sd)=>med*Math.exp(sd*norm());
+  const units=['Unit A','Unit B','Unit C','Unit D','Unit E','Unit F'], unitSlow={'Unit E':1.45,'Unit B':1.15};
+  const specs=['General medicine','General surgery','Cardiology','Orthopaedics','Respiratory','Care of older people'];
+  const cons=Array.from({length:24},(_,i)=>'Consultant '+p2(i+1)), consSlow={'Consultant 07':1.6,'Consultant 19':1.5};
+  const disp=[['Home',0.62],['Home with support',0.2],['Care facility',0.1],['Other hospital',0.08]];
+  const pickW=a=>{ let x=rnd(); for(const [v,w] of a){ if((x-=w)<=0) return v; } return a[a.length-1][0]; };
+  const fmt=d=>d?`${d.getUTCFullYear()}-${p2(d.getUTCMonth()+1)}-${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`:'';
+  const add=(d,m)=>new Date(d.getTime()+Math.round(m)*6e4);
+  const header=['case_id','unit','specialty','consultant','disposition','sex','age','expected_discharge_date','discharge_order_at','med_reconciliation_at','discharge_summary_at','pharmacy_ready_at','nursing_ready_at','transport_arranged_at','discharged_at','nursing_delay_reason','pharmacy_delay_reason','other_delay_reason'];
+  const rows=[];
+  const t0=Date.UTC(2026,0,5);
+  for(let i=0;i<n;i++){
+    const unit=pick(units), spec=pick(specs), con=pick(cons), dp=pickW(disp), age=Math.max(18,Math.min(98,Math.round(66+17*norm())));
+    const day=Math.floor(rnd()*168), base=new Date(t0+day*864e5), dow=base.getUTCDay(), wkend=dow===0||dow===6;
+    // order time: mostly late morning, some the evening before
+    const prevEve=rnd()<0.12; let hr=prevEve?18+rnd()*4:8+Math.abs(norm())*3.2+rnd()*2; hr=Math.min(23.5,hr);
+    const order=new Date(base.getTime()+(prevEve?-1:0)*864e5+Math.round(hr*60)*6e4);
+    const slow=(unitSlow[unit]||1)*(consSlow[con]||1)*(wkend?1.35:1)*(age>80?1.15:1);
+    const medrec=rnd()<0.97?add(order,rnd()<0.08?-logn(40,0.6):logn(55,0.7)*slow):null;
+    const summary=rnd()<0.94?add(order,logn(80,0.8)*slow):null;
+    const pharm=rnd()<0.92?add(medrec||order,logn(95,0.75)*slow):null;
+    const nurse=rnd()<0.95?add(new Date(Math.max(order,summary||0,pharm||0)),logn(25,0.6)):null;
+    const needsTr=dp==='Care facility'||dp==='Other hospital'||rnd()<0.18;
+    const transport=needsTr?add(order,logn(150,0.7)*(wkend?1.3:1)):null;
+    const lastPre=Math.max(order,nurse||0,transport||0,pharm||0);
+    let dc=add(new Date(lastPre),logn(35,0.6));
+    const blank=rnd()<0.004;
+    // a small share of summaries are written after the patient has left
+    const summaryOut=summary&&rnd()<0.06?add(dc,logn(120,0.8)):summary;
+    const edd=new Date(dayKey(order)+(rnd()<0.7?0:rnd()<0.6?-864e5:864e5)*(rnd()<0.85?1:2));
+    const rs={nursing:'',pharmacy:'',other:''};
+    if(pharm&&(pharm-(medrec||order))/6e4>150&&rnd()<0.65) rs.pharmacy=pick(SYNTH_REASONS.pharmacy);
+    if(nurse&&(dc-nurse)/6e4>60&&rnd()<0.5) rs.nursing=pick(SYNTH_REASONS.nursing);
+    if(transport&&(transport-order)/6e4>240&&rnd()<0.7) rs.other='Awaiting transport'; else if(rnd()<0.06) rs.other=pick(SYNTH_REASONS.other);
+    rows.push(['SYN-'+String(100000+i),unit,spec,con,dp,rnd()<0.52?'F':'M',String(age),fmt(edd).slice(0,10),fmt(order),fmt(medrec),fmt(summaryOut),fmt(pharm),fmt(nurse),fmt(transport),blank?'':fmt(dc),rs.nursing,rs.pharmacy,rs.other]);
+  }
+  return {header,rows};
+}
+const SAMPLE_CONFIG={
+  schema:CONFIG_SCHEMA, name:'Discharge process', terms:{case:'discharge',cases:'discharges'},
+  columns:{
+    case_id:{role:'id',label:'Case ID'}, unit:{role:'attribute',label:'Unit',type:'cat',risk:true}, specialty:{role:'attribute',label:'Specialty',type:'cat',risk:true},
+    consultant:{role:'attribute',label:'Consultant',type:'cat',risk:false}, disposition:{role:'attribute',label:'Disposition',type:'cat',risk:true},
+    sex:{role:'attribute',label:'Sex',type:'cat',risk:false}, age:{role:'attribute',label:'Age',type:'num',risk:true},
+    expected_discharge_date:{role:'due',label:'Expected discharge date'},
+    discharge_order_at:{role:'step',label:'Discharge order'}, med_reconciliation_at:{role:'step',label:'Medicines reconciled'},
+    discharge_summary_at:{role:'step',label:'Discharge summary'}, pharmacy_ready_at:{role:'step',label:'Medicines ready'},
+    nursing_ready_at:{role:'step',label:'Nursing ready'}, transport_arranged_at:{role:'step',label:'Transport arranged'},
+    discharged_at:{role:'step',label:'Discharged'},
+    nursing_delay_reason:{role:'reason',label:'Nursing delay'}, pharmacy_delay_reason:{role:'reason',label:'Pharmacy delay'}, other_delay_reason:{role:'reason',label:'Other delay'}
+  },
+  stepOrder:['discharge_order_at','med_reconciliation_at','discharge_summary_at','pharmacy_ready_at','nursing_ready_at','transport_arranged_at','discharged_at'],
+  happyFlow:['discharge_order_at','med_reconciliation_at','discharge_summary_at','pharmacy_ready_at','nursing_ready_at','discharged_at'],
+  rules:[],
+  settings:{weekend:[6,0],basis:'start'}
+};
+
+if(typeof module!=='undefined') module.exports={PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};
+</script>
+<script>(function(){
+'use strict';
+/* =====================================================================
+   Proxy Process Explorer: page. Setup wizard, filters, tabs and export.
+   All analysis lives in core.js; this file only reads state and draws.
+   ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S={table:null,profile:null,cfg:null,draft:null,pendingCfg:null,wizStep:0,fileLabel:'',
+  all:[],meta:null,view:[],A:null,modelAll:null,ref:[],refKey:'',refMode:'happy',refCustom:null,
+  opt:{post:false,weekend:[6,0],basis:'start',vmode:'seq'},f:{},combine:'and',
+  metric:'freq',minPct:5,fit:'fit',sel:null,dim:null,minN:10,edgeMin:5,sort:{c:'n',d:-1},hm:{basis:'start',metric:'n'},lastQ:''};
+const PRIMARY=5;
+let FD=[], FDM={};
+const T=()=>SCH.terms, Tc=()=>T().cases.charAt(0).toUpperCase()+T().cases.slice(1);
+
+let toastT;
+function toast(msg,err){ const t=$('#toast'); clearTimeout(toastT); if(!msg){ t.style.display='none'; return; }
+  t.textContent=msg; t.className=err?'err':''; t.style.display='block'; if(!err) toastT=setTimeout(()=>t.style.display='none',2600); }
+function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); }
+const stamp=()=>{ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); };
+const slug=s=>String(s||'process').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'process';
+const csvQ=v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+function csv(H,rows,name){ download(new Blob(['﻿'+[H.map(csvQ).join(',')].concat(rows.map(r=>r.map(csvQ).join(','))).join('\r\n')],{type:'text/csv'}),name); }
+const basisLabel=()=>S.opt.basis==='end'?shortL(SCH.end).toLowerCase():shortL(SCH.start).toLowerCase();
+const wkLabel=()=>S.opt.weekend.slice().sort((a,b)=>DAY_ORDER.indexOf(a)-DAY_ORDER.indexOf(b)).map(d=>DAYS[d]).join(', ')||'none';
+const store={ key:h=>'ppe:setup:'+h.join('|').length+':'+h.slice(0,40).join('|'),
+  get(h){ try{ const v=localStorage.getItem(this.key(h)); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  set(h,c){ try{ localStorage.setItem(this.key(h),JSON.stringify(c)); }catch(e){} } };
+
+/* =====================================================================
+   Loading
+   ===================================================================== */
+async function load(file){
+  if(!file) return; $('#loadErr').innerHTML=''; toast('Reading '+file.name+'…');
+  try{
+    const buf=await file.arrayBuffer(); let rows, sheet='';
+    if(/\.csv$/i.test(file.name)) rows=parseCsv(new TextDecoder().decode(buf)); else { const x=await readXlsxRows(buf); rows=x.rows; sheet=x.sheet; }
+    openTable(toTable(rows,sheet),file.name+(sheet?' · '+sheet:''));
+    toast('');
+  }catch(e){ console.error(e); toast(''); showEmpty(); $('#loadErr').innerHTML=`<div class="err">${esc(e.message||e)}</div>`; }
+  $('#file').value='';
+}
+function openTable(table,label,presetCfg){
+  S.table=table; S.fileLabel=label; S.profile=profileColumns(table);
+  let note='';
+  if(presetCfg) S.draft=normaliseConfig(presetCfg);
+  else if(S.pendingCfg){ const m=mergeConfig(S.pendingCfg,table,S.profile); S.draft=m.cfg;
+    note=m.dropped.length?`The imported setup names columns this file does not have: ${m.dropped.join(', ')}.`:'Imported setup applied.';
+    if(m.rulesDropped) note+=` ${m.rulesDropped} rule(s) referred to missing steps and were left out.`; }
+  else { const saved=store.get(table.header); S.draft=saved?mergeConfig(saved,table,S.profile).cfg:suggestConfig(table,S.profile); if(saved) note='Setup restored from the last time this file layout was used in this browser.'; }
+  $('#fileName').textContent=label; openWizard(0,note);
+}
+$('#sampleBtn').onclick=()=>{ const {header,rows}=synthRows(42,1200); openTable(toTable([header,...rows],'synthetic'),'Synthetic sample (1,200 made-up cases)',SAMPLE_CONFIG_UI()); };
+function SAMPLE_CONFIG_UI(){ return typeof SAMPLE_CONFIG_FULL!=='undefined'?SAMPLE_CONFIG_FULL:SAMPLE_CONFIG; }
+async function readCfgFile(file){
+  try{ const c=JSON.parse(await file.text()); if(!c||typeof c!=='object'||!c.columns) throw new Error('This file is not a setup exported by this page.');
+    if(S.table&&!$('#wiz').hidden){ const m=mergeConfig(c,S.table,S.profile); S.draft=m.cfg; openWizard(S.wizStep,m.dropped.length?`Imported. Columns not in this file were left out: ${m.dropped.join(', ')}.`:'Setup imported.'); }
+    else if(S.table){ const m=mergeConfig(c,S.table,S.profile); S.draft=m.cfg; openWizard(0,'Setup imported. Check it and apply.'); }
+    else { S.pendingCfg=c; $('#cfgNote').innerHTML=`<div class="okmsg">Setup "${esc(c.name||'Process')}" loaded. It will be applied to the next file you open.</div>`; }
+  }catch(e){ toast('Could not read the setup: '+(e.message||e),true); }
+  $('#cfgFile').value=''; }
+$('#cfgFile').onchange=e=>readCfgFile(e.target.files[0]);
+function exportCfg(c){ download(new Blob([JSON.stringify(c,null,2)],{type:'application/json'}),`${slug(c.name)}_setup.json`); }
+$('#cfgExport').onclick=()=>exportCfg(normaliseConfig(S.draft));
+function showEmpty(){ $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#setupBtn').hidden=true; }
+
+/* =====================================================================
+   Setup wizard
+   ===================================================================== */
+const ROLE_L={ignore:'Ignore',id:'Case ID',step:'Step timestamp',attribute:'Variable',reason:'Delay reason',due:'Due date'};
+const WSTEPS=[
+  {id:'columns',t:'Columns',render:wColumns},
+  {id:'flow',t:'Happy flow',render:wFlow},
+  {id:'vars',t:'Variables',render:wVars}
+];
+const WS=id=>WSTEPS.find(w=>w.id===id);
+if(typeof window.PPE_WIZARD_EXTRA==='function') window.PPE_WIZARD_EXTRA(WSTEPS);
+function openWizard(step,note){
+  S.wizStep=step||0; $('#empty').hidden=true; $('#app').hidden=true; $('#wiz').hidden=false;
+  $('#wizCancel').hidden=!S.cfg; $('#wizFile').textContent=S.fileLabel+' · '+S.table.data.length.toLocaleString()+' rows · header on row '+S.table.headerRow;
+  S.wizNote=note||''; renderWizard(); window.scrollTo({top:0});
+}
+function renderWizard(){
+  const st=WSTEPS[S.wizStep];
+  $('#wizTitle').textContent=st.t;
+  $('#wizSteps').innerHTML=WSTEPS.map((w,i)=>`<button data-ws="${i}" class="${i===S.wizStep?'on':''}"><i>${i+1}</i>${esc(w.t)}</button>`).join('');
+  $('#wizBody').innerHTML=(S.wizNote?`<div class="okmsg" style="margin:0 0 12px">${esc(S.wizNote)}</div>`:'')+st.render()+`<div class="issues" id="wizIssues"></div>`;
+  $('#wizBack').disabled=S.wizStep===0; $('#wizNext').textContent=S.wizStep===WSTEPS.length-1?'Apply and explore':'Next';
+  if(st.bind) st.bind(); bindWizard(); showIssues();
+}
+function showIssues(){ const v=validateConfig(S.draft,S.table.header), box=$('#wizIssues'); if(!box) return;
+  box.innerHTML=v.errors.map(e=>`<div class="err">${esc(e)}</div>`).join('')+v.warnings.map(w=>`<div class="warn">${esc(w)}</div>`).join('');
+  $('#wizNext').disabled=S.wizStep===WSTEPS.length-1&&!v.ok; return v; }
+function setDraft(fn){ fn(S.draft); S.draft=normaliseConfig(S.draft); }
+$('#wizSteps').onclick=e=>{ const b=e.target.closest('[data-ws]'); if(!b) return; S.wizNote=''; S.wizStep=+b.dataset.ws; renderWizard(); };
+$('#wizBack').onclick=()=>{ if(S.wizStep>0){ S.wizNote=''; S.wizStep--; renderWizard(); } };
+$('#wizNext').onclick=()=>{ if(S.wizStep<WSTEPS.length-1){ S.wizNote=''; S.wizStep++; renderWizard(); window.scrollTo({top:0}); return; } applySetup(); };
+$('#wizCancel').onclick=()=>{ S.draft=null; $('#wiz').hidden=true; $('#app').hidden=false; };
+
+function wColumns(){
+  const c=S.draft;
+  const rows=S.profile.map(p=>{ const cc=c.columns[p.col]||{role:'ignore',label:p.col};
+    const read=p.dateShare>0.05?`${pctS(p.dateShare)} dates`:p.numShare>0.9?`numbers · ${p.distinct.toLocaleString()} distinct`:`${p.distinct.toLocaleString()} distinct values`;
+    return `<tr data-col="${esc(p.col)}"><td class="l"><b>${esc(p.col)}</b>${p.pii?'<span class="badge pii" title="The column name suggests a direct identifier">Personal data?</span>':''}${p.fill<0.5&&p.n?`<span class="badge" title="Filled in ${pctS(p.fill)} of rows">${pctS(p.fill)} filled</span>`:''}</td>
+      <td class="l samp">${esc(p.sample.join(' · '))}</td><td class="l">${esc(read)}</td>
+      <td style="min-width:150px"><select data-k="role">${ROLES.map(r=>`<option value="${r}"${cc.role===r?' selected':''}>${ROLE_L[r]}</option>`).join('')}</select></td>
+      <td style="min-width:190px">${cc.role==='ignore'?'':`<input type="text" data-k="label" value="${esc(cc.label)}" aria-label="Label for ${esc(p.col)}">`}</td>
+      <td style="min-width:110px">${cc.role==='attribute'?`<select data-k="type"><option value="cat"${cc.type!=='num'?' selected':''}>Category</option><option value="num"${cc.type==='num'?' selected':''}>Number (bands)</option></select>`:''}</td></tr>`; }).join('');
+  return `<p class="lead">Each column gets one role. <b>Step timestamps</b> become the steps of the process. <b>Variables</b> become filters, breakdowns and candidate risk factors. <b>Delay reasons</b> are counted as recorded. Roles are suggested from the values; change any of them.</p>
+  <div class="terms"><label>Process name <input type="text" id="tName" value="${esc(c.name)}"></label><label>One case is a <input type="text" id="tCase" value="${esc(c.terms.case)}"></label><label>Many cases are <input type="text" id="tCases" value="${esc(c.terms.cases)}"></label></div>
+  <div class="tbl-scroll" style="max-height:none"><table class="t coltbl"><thead><tr><th class="l">Column in file</th><th class="l">Sample values</th><th class="l">Read as</th><th class="l">Role</th><th class="l">Label shown</th><th class="l">Type</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+WS('columns').bind=()=>{
+  $('#tName').oninput=e=>{ S.draft.name=e.target.value.trim()||'Process'; };
+  $('#tCase').oninput=e=>{ S.draft.terms.case=e.target.value.trim()||'case'; };
+  $('#tCases').oninput=e=>{ S.draft.terms.cases=e.target.value.trim()||'cases'; };
+  $('#wizBody').onchange=e=>{ const tr=e.target.closest('tr[data-col]'), k=e.target.dataset.k; if(!tr||!k) return; const col=tr.dataset.col;
+    setDraft(c=>{ const cc=c.columns[col]||(c.columns[col]={role:'ignore',label:humaniseUI(col)});
+      if(k==='role'){ const p=S.profile.find(x=>x.col===col); cc.role=e.target.value; if(cc.role==='attribute'){ cc.type=cc.type||p.type; cc.risk=!!cc.risk; }
+        if(cc.role==='step'&&!c.happyFlow.includes(col)) c.happyFlow.push(col);
+        if(cc.role==='id') for(const [kk,vv] of Object.entries(c.columns)) if(kk!==col&&vv.role==='id') vv.role='attribute';
+        if(cc.role==='due') for(const [kk,vv] of Object.entries(c.columns)) if(kk!==col&&vv.role==='due') vv.role='ignore'; }
+      else cc[k]=k==='label'?(e.target.value.trim()||col):e.target.value; });
+    if(k!=='label') renderWizard(); else showIssues(); };
+  $('#wizBody').oninput=e=>{ if(e.target.dataset.k==='label'){ const col=e.target.closest('tr').dataset.col; S.draft.columns[col].label=e.target.value.trim()||col; } };
+};
+const humaniseUI=c=>String(c).replace(/[_\-.]+/g,' ').trim();
+
+function wFlow(){
+  const c=S.draft, cols=c.stepOrder, st=stepStats(S.table,cols), H=new Set(c.happyFlow);
+  if(!cols.length) return '<div class="err">No column has the role "Step timestamp". Go back to Columns and mark at least two.</div>';
+  const hf=cols.filter(k=>H.has(k));
+  const items=cols.map((k,i)=>{ const on=H.has(k), first=hf[0]===k, last=hf[hf.length-1]===k, s=st[k];
+    return `<div class="flow-item${on?'':' off'}" data-col="${esc(k)}"><label class="chk" title="Part of the happy flow"><input type="checkbox" data-a="toggle"${on?' checked':''}></label>
+      <div class="nm"><b>${esc(c.columns[k].label)}</b>${first?'<span class="badge start">Start: clock starts</span>':''}${last?'<span class="badge end">End: case ends</span>':''}<small>${esc(k)} · recorded in ${pctS(s.fill)} of rows · typically ${s.med==null?'–':'+'+fmtMin(s.med)} after the earliest step</small></div>
+      <div class="mv"><button data-a="up" aria-label="Move up"${i===0?' disabled':''}>▲</button><button data-a="down" aria-label="Move down"${i===cols.length-1?' disabled':''}>▼</button></div></div>`; }).join('');
+  return `<p class="lead">Put the steps in the order they <i>should</i> happen and tick the ones that belong to the happy flow. The first ticked step starts the clock; the last ticked step ends the case (rows without it are left out). Unticked steps are still tracked as optional steps and show up as additions to the flow.</p>
+  <div class="flow"><div><div class="ctrl" style="margin-bottom:8px"><button class="btn ghost" id="sortTypical">Order by typical time</button><span class="note" style="margin:0">Sorts steps by their median time in the file</span></div><div class="flow-list">${items}</div></div>
+  <div class="flow-prev"><div class="lbl">Happy flow</div><ol>${hf.map(k=>`<li>${esc(c.columns[k].label)}</li>`).join('')}</ol>
+  <p class="note">A ${esc(c.terms.case)} follows the happy flow when exactly these steps are recorded, in this order, and nothing else. Everything else is measured against it on the process map.</p></div></div>`;
+}
+WS('flow').bind=()=>{
+  $('#wizBody').onclick=e=>{ const b=e.target.closest('[data-a]'); if(b&&b.dataset.a!=='toggle'){ const col=b.closest('[data-col]').dataset.col;
+      setDraft(c=>{ const o=c.stepOrder, i=o.indexOf(col), j=b.dataset.a==='up'?i-1:i+1; if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; const H=new Set(c.happyFlow); c.happyFlow=o.filter(k=>H.has(k)); });
+      renderWizard(); return; }
+    if(e.target.id==='sortTypical'){ setDraft(c=>{ c.stepOrder=typicalOrder(S.table,c.stepOrder); const H=new Set(c.happyFlow); c.happyFlow=c.stepOrder.filter(k=>H.has(k)); }); renderWizard(); } };
+  $('#wizBody').onchange=e=>{ if(e.target.dataset.a!=='toggle') return; const col=e.target.closest('[data-col]').dataset.col;
+    setDraft(c=>{ const H=new Set(c.happyFlow); e.target.checked?H.add(col):H.delete(col); c.happyFlow=c.stepOrder.filter(k=>H.has(k)); }); renderWizard(); };
+};
+
+function wVars(){
+  const c=S.draft, A=Object.keys(c.columns).filter(k=>c.columns[k].role==='attribute');
+  if(!A.length) return '<p class="lead">No column has the role "Variable". Filters and breakdowns will only offer day of week, weekday or weekend, month and delay reasons. Go back to Columns to add variables.</p>';
+  const rows=A.map(k=>{ const p=S.profile.find(x=>x.col===k)||{distinct:0,sample:[]}, cc=c.columns[k];
+    return `<tr data-col="${esc(k)}"><td class="l"><b>${esc(cc.label)}</b> <span class="note">${esc(k)}</span></td><td class="l">${cc.type==='num'?'Number, compared in quarter bands':'Category'}</td><td>${p.distinct.toLocaleString()}</td><td class="l samp">${esc(p.sample.join(' · '))}</td>
+      <td style="text-align:center"><input type="checkbox" data-k="risk"${cc.risk?' checked':''} aria-label="Use ${esc(cc.label)} in the risk analysis"></td></tr>`; }).join('');
+  return `<p class="lead">Every variable is available as a filter and as a breakdown. Tick the ones that are <b>relevant for risk</b>: the Rules and risk tab compares ${esc(c.terms.cases)} with and without each of their values when it looks at which ${esc(c.terms.cases)} miss a rule or a target time, and holds the others constant in the adjusted comparison.</p>
+  <div class="tbl-scroll" style="max-height:none"><table class="t"><thead><tr><th class="l">Variable</th><th class="l">Type</th><th>Distinct values</th><th class="l">Sample values</th><th>Relevant for risk</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="note">Tick few: each ticked category adds a comparison per frequent value, and many overlapping factors make the adjusted comparison unstable.</p>`;
+}
+WS('vars').bind=()=>{ $('#wizBody').onchange=e=>{ if(e.target.dataset.k!=='risk') return; const col=e.target.closest('tr').dataset.col; S.draft.columns[col].risk=e.target.checked; }; };
+
+function bindWizard(){ /* per-step handlers are attached in each step's bind() */ }
+function applySetup(){
+  const v=validateConfig(S.draft,S.table.header); if(!v.ok){ showIssues(); toast('Fix the setup first',true); return; }
+  try{ const B=buildRecords(S.table,S.draft);
+    S.cfg=normaliseConfig(S.draft); S.draft=null; store.set(S.table.header,S.cfg);
+    S.all=B.recs; S.meta=B.meta; S.f={}; S.sel=null; S.refMode='happy'; S.refCustom=null; S.lastQ='';
+    S.opt.weekend=S.cfg.settings.weekend||[6,0]; S.opt.basis=S.cfg.settings.basis==='end'?'end':'start';
+    $('#refSel').value='happy'; $('#refSel option[value=custom]').disabled=true;
+    $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
+    $('#subTitle').textContent=`${S.cfg.name} · ${S.cfg.happyFlow.length} happy-flow steps · ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`;
+    syncSettingsUI(); buildFilters(); recompute(); showTab('process'); toast(`Loaded ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`);
+  }catch(e){ console.error(e); toast(e.message||String(e),true); }
+}
+$('#setupBtn').onclick=()=>{ S.draft=normaliseConfig(S.cfg); openWizard(0); };
+
+/* =====================================================================
+   Filters
+   ===================================================================== */
+function buildFilters(){
+  FD=SCH.attrs.map((a,i)=>['a'+i,a.l,r=>r.attr[a.col]])
+    .concat([['dayType','Weekday / weekend',r=>r.dayType],['dowL','Day of week',r=>r.dowL],['month','Month (end step)',r=>r.month,monthLabel]])
+    .concat(SCH.reasons.map((q,i)=>['r'+i,q.l,r=>r.reason[q.k]||'None recorded']))
+    .concat(SCH.dueCol?[['due','Ended by due date',r=>r.byDue==null?'No due date':(r.byDue?'Yes':'No')]]:[])
+    .concat(typeof window.PPE_FILTER_EXTRA==='function'?window.PPE_FILTER_EXTRA():[]);
+  FDM=Object.fromEntries(FD.map(d=>[d[0],d]));
+  $('#fPrimary').innerHTML=FD.slice(0,PRIMARY).map(msHtml).join('');
+  $('#more').innerHTML=FD.slice(PRIMARY).map(msHtml).join('');
+  $('#moreBtn').hidden=FD.length<=PRIMARY;
+  $('#dim').innerHTML=FD.map(d=>`<option value="${d[0]}">${esc(d[1])}</option>`).join(''); S.dim=FD[0][0]; $('#dim').value=S.dim;
+  syncFilterButtons();
+}
+const fmtV=(k,v)=>FDM[k]&&FDM[k][3]?FDM[k][3](v):v;
+function counts(k){ const fn=FDM[k][2], m=new Map(); for(const r of S.all){ const v=String(fn(r)); m.set(v,(m.get(v)||0)+1); }
+  return [...m.entries()].sort((a,b)=>k==='dowL'?DAY_ORDER.indexOf(DAYS.indexOf(a[0]))-DAY_ORDER.indexOf(DAYS.indexOf(b[0])):(k==='month'||/^Band|^[A-D]: /.test(a[0]))?a[0].localeCompare(b[0]):b[1]-a[1]||a[0].localeCompare(b[0])); }
+function msHtml(d){ const [k,l]=d; return `<div class="fl" data-fk="${k}">${esc(l)}<button class="ms-btn" data-ms="${k}">All</button><div class="pop" hidden></div></div>`; }
+function syncFilterButtons(){ for(const b of $$('.ms-btn')){ const k=b.dataset.ms, s=S.f[k];
+  b.textContent=!s||!s.size?'All':(s.size===1?fmtV(k,[...s][0]):`${s.size} selected`); b.classList.toggle('on',!!(s&&s.size)); b.title=s&&s.size?[...s].map(v=>fmtV(k,v)).join(', '):''; } }
+function openPop(k){ closePops(); const wrap=$(`.fl[data-fk="${k}"]`), pop=wrap.querySelector('.pop');
+  const vals=counts(k), sel=S.f[k]||new Set();
+  pop.innerHTML=`<input type="text" placeholder="Search" aria-label="Search values"><div class="ms-list">${vals.map(([v,n])=>`<label><input type="checkbox" value="${esc(v)}"${sel.has(v)?' checked':''}><span>${esc(fmtV(k,v))}</span><em>${n}</em></label>`).join('')}</div><div class="pop-f"><button class="btn ghost" data-a="all">Select shown</button><button class="btn ghost" data-a="none">Clear</button><button class="btn ghost" data-a="done">Done</button></div>`;
+  pop.hidden=false; const inp=pop.querySelector('input[type=text]'); inp.focus();
+  inp.oninput=()=>{ const q=inp.value.toLowerCase(); pop.querySelectorAll('.ms-list label').forEach(l=>l.hidden=!l.textContent.toLowerCase().includes(q)); };
+  pop.onchange=e=>{ if(e.target.type!=='checkbox') return; const s=S.f[k]||(S.f[k]=new Set()); e.target.checked?s.add(e.target.value):s.delete(e.target.value); S.sel=null; update(); };
+  pop.onclick=e=>{ const a=e.target.dataset&&e.target.dataset.a; if(!a) return; const s=S.f[k]||(S.f[k]=new Set());
+    if(a==='done'){ closePops(); return; }
+    pop.querySelectorAll('.ms-list label').forEach(l=>{ if(l.hidden) return; const c=l.querySelector('input'); if(a==='all'){ c.checked=true; s.add(c.value); } else { c.checked=false; s.delete(c.value); } });
+    S.sel=null; update(); };
+}
+function closePops(){ $$('.fl .pop').forEach(p=>{ if(p.id!=='setPop') p.hidden=true; }); }
+document.addEventListener('click',e=>{ const b=e.target.closest('.ms-btn'); if(b){ const pop=b.parentElement.querySelector('.pop'); if(pop.hidden) openPop(b.dataset.ms); else closePops(); return; }
+  if(!e.target.closest('.pop')) closePops(); if(!e.target.closest('#setPop')&&e.target.id!=='setBtn') $('#setPop').hidden=true; });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePops(); $('#setPop').hidden=true; if($('#mapCard').classList.contains('full')) $('#fullBtn').click(); } });
+function activeF(){ return FD.filter(d=>S.f[d[0]]&&S.f[d[0]].size); }
+function extraFilterFns(){ return typeof window.PPE_SEGMENT_FNS==='function'?window.PPE_SEGMENT_FNS():[]; }
+function applyFilters(noSeg){ const act=activeF(), SF=noSeg?[]:extraFilterFns();
+  return S.all.filter(r=>{ if(SF.length&&!SF.every(f=>f.fn(r)===true)) return false;
+    if(!act.length) return true; const m=act.map(([k,,fn])=>S.f[k].has(String(fn(r)))); return S.combine==='and'?m.every(Boolean):m.some(Boolean); }); }
+function scopeText(){ const act=activeF().map(([k,l])=>`${l}: ${[...S.f[k]].map(v=>fmtV(k,v)).join(' or ')}`);
+  const sf=extraFilterFns(); if(sf.length) act.push('Segment: '+sf.map(f=>f.l).join(' and '));
+  return act.length?act.join(S.combine==='and'?'; and ':'; or '):`All ${T().cases} in the file`; }
+function renderChips(){ const act=activeF(), sf=extraFilterFns(); let h='';
+  act.forEach(([k,l],i)=>{ if(i) h+=`<span class="join">${S.combine==='and'?'and':'or'}</span>`; h+=`<span class="fchip">${esc(l)}: ${esc([...S.f[k]].map(v=>fmtV(k,v)).join(' or '))}<button data-rm="${k}" aria-label="Remove filter">×</button></span>`; });
+  if(sf.length) h+=`${act.length?'<span class="join">and</span>':''}<span class="fchip">Segment: ${esc(sf.map(f=>f.l).join(' and '))}<button data-rmseg="1" aria-label="Remove segment">×</button></span>`;
+  if(act.length||sf.length) h+=`<span class="note" style="margin:0 0 0 6px">${S.view.length.toLocaleString()} of ${S.all.length.toLocaleString()} ${esc(T().cases)}</span>`;
+  $('#fchips').innerHTML=h; }
+$('#fchips').onclick=e=>{ if(e.target.closest('[data-rmseg]')){ if(window.PPE_CLEAR_SEGMENT) window.PPE_CLEAR_SEGMENT(); S.sel=null; update(); return; } const b=e.target.closest('[data-rm]'); if(!b) return; delete S.f[b.dataset.rm]; S.sel=null; update(); };
+function addFilter(k,v){ const s=S.f[k]||(S.f[k]=new Set()); s.has(v)?s.delete(v):s.add(v); S.sel=null; update(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+/* =====================================================================
+   Compute
+   ===================================================================== */
+function recompute(){ prepare(S.all,S.opt); S.modelAll=buildModel(S.all); update(); }
+function computeRef(){ const M=S.modelAll; let tr;
+  if(S.refMode==='custom'&&S.refCustom&&M.variants.find(v=>v.key===S.refCustom)) tr=M.variants.find(v=>v.key===S.refCustom).trace;
+  else if(S.refMode==='top') tr=M.variants.length?M.variants[0].trace:[];
+  else tr=SCH.happy.slice();
+  S.ref=tr; S.refKey=keyOf(tr,S.opt.vmode); }
+function refLabel(){ const src=S.refMode==='top'?'most common sequence in the file':S.refMode==='custom'?'sequence selected by the analyst':'happy flow from the setup';
+  return `${S.ref.map(k=>EVL(k)).join(' → ')} (${src}${S.opt.vmode==='set'?', compared by steps only':''})`; }
+function update(){
+  S.view=applyFilters(); computeRef();
+  S.A=analyse(S.view,{ref:S.ref,refKey:S.refKey,minN:S.minN,basisLabel:basisLabel()});
+  syncFilterButtons(); renderChips(); renderWarn(); renderKpis(); renderMap(); renderVariants(); renderSel(); renderTiming(); renderCompare(); renderTime(); renderFindings();
+  if(window.PPE_RENDER_EXTRA) window.PPE_RENDER_EXTRA(S);
+  if(S.lastQ) renderLookup(S.lastQ);
+}
+function renderWarn(){ const M=S.meta, w=[], cases=T().cases;
+  if(M.noEnd) w.push(`${M.noEnd.toLocaleString()} rows without a readable time in the end step (${EVL(SCH.end)}) were left out.`);
+  for(const e of SCH.steps){ const D=M.diag[e.k]; if(D.ok) continue;
+    w.push(D.non?`${e.l}: column "${D.col}" holds ${D.non.toLocaleString()} values but none reads as a date and time (example "${D.badEx}").`:`${e.l}: column "${D.col}" is empty in every row, so this step is empty.`); }
+  for(const e of SCH.steps){ const b=M.bad[e.k], D=M.diag[e.k]; if(b&&D.ok) w.push(`${e.l}: ${b.n.toLocaleString()} values could not be read as a date and time (example: "${b.sample}"); they are treated as not recorded.`); }
+  if(M.noStart) w.push(M.noStart===S.all.length?`No ${T().case} has a time in the start step, so everything measured from it is empty.`:`${M.noStart.toLocaleString()} ${cases} have no time in the start step: they appear on the map but not in any time measured from it.`);
+  if(M.negDur) w.push(`${M.negDur.toLocaleString()} ${cases} have the end step before the start step.`);
+  if(M.dfi.ambiguousOnly) w.push('Some dates are text where day and month cannot be told apart; they were read as day/month/year.');
+  if(M.dfi.conflict) w.push('Text dates appear in both day/month and month/day order. Check the date columns in the source.');
+  $('#warn').hidden=!w.length; $('#warn').innerHTML=w.length?`<b>Before reading the results</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''; }
+function dqList(){ const M=S.meta, L=[], cases=T().cases;
+  L.push(`${M.rows.toLocaleString()} data rows read${M.sheet&&M.sheet!=='synthetic'?' from sheet "'+M.sheet+'"':''} (header on row ${M.headerRow}); ${S.all.length.toLocaleString()} ${cases} with an end-step time were analysed.`);
+  if(M.noEnd) L.push(`${M.noEnd} rows had no end-step time and were excluded.`);
+  if(M.noStart) L.push(`${M.noStart} ${cases} have no start-step time.`);
+  if(M.negDur) L.push(`${M.negDur} ${cases} have the end step earlier than the start step.`);
+  for(const e of SCH.steps){ const b=M.bad[e.k]; if(b) L.push(`${e.l}: ${b.n} values not readable as date and time, e.g. "${b.sample}".`); }
+  if(M.dupId) L.push(`${M.dupId} repeated case IDs were found; each row is analysed as its own ${T().case}.`);
+  if(M.dfi.ambiguousOnly) L.push('Text dates were read as day/month/year.');
+  for(const w of M.warnings) L.push(w);
+  return L; }
+
+/* ---------- KPIs ---------- */
+function renderKpis(){ const st=S.A.st, set=S.opt.vmode==='set', A=S.A;
+  const K=[[st.n.toLocaleString(),Tc(),S.view.length===S.all.length?'whole file':`of ${S.all.length.toLocaleString()} in the file`],
+    [fmtMin(st.dur.med),`Median ${SCH.durLabel}`,`P75 ${fmtMin(st.dur.p75)} · P90 ${fmtMin(st.dur.p90)}`],
+    [pctS(st.conf),set?'Same steps as reference':'Followed the reference flow',`${A.model.variants.length.toLocaleString()} distinct ${set?'step sets':'sequences'}`]];
+  if(st.dueN) K.push([pctS(st.due),'Ended by due date',`${st.dueN.toLocaleString()} with a due date`]);
+  if(SCH.reasons.length) K.push([pctS(st.reason),'Any delay reason',SCH.reasons.map(r=>r.l).join(', ')]);
+  if(window.PPE_KPI_EXTRA) window.PPE_KPI_EXTRA(K,S);
+  const L0=A.L.find(x=>x.k!=='none'); if(K.length<6&&L0) K.push([pctS(L0.p),'Last step: '+shortL(L0.k),`then median ${fmtMin(L0.st.med)} to the end`]);
+  $('#kpis').style.gridTemplateColumns=`repeat(${Math.min(6,K.length)},minmax(0,1fr))`;
+  $('#kpis').innerHTML=K.slice(0,6).map(k=>`<div class="kpi"><b>${esc(k[0])}</b><span>${esc(k[1])}</span><small>${esc(k[2])}</small></div>`).join(''); }
+
+/* ---------- process map ---------- */
+function hlFor(){ const sel=S.sel, M=S.A.model; if(!sel) return null; const nodes=new Set(['S','E']), edges=new Set();
+  if(sel.type==='node'){ nodes.clear(); nodes.add(sel.key); for(const e of M.edges.values()) if(e.a===sel.key||e.b===sel.key) edges.add(e.key); }
+  else if(sel.type==='edge'){ nodes.clear(); const e=M.edges.get(sel.key); if(e){ nodes.add(e.a); nodes.add(e.b); edges.add(e.key); } }
+  else { const v=M.variants.find(x=>x.key===sel.key); if(v) for(const r of v.recs){ const seq=['S'].concat(r.trace,['E']); seq.forEach(k=>nodes.add(k)); for(let i=0;i<seq.length-1;i++) edges.add(seq[i]+'>'+seq[i+1]); } }
+  return {nodes,edges}; }
+function renderMap(){ const A=S.A;
+  $('#refTxt').innerHTML=`<b style="color:var(--ink)">Reference flow:</b> ${esc(refLabel())}`;
+  $('#mapWrap').innerHTML=renderMapSvg(A.model,{ref:S.ref,order:A.order,metric:S.metric,minPct:S.minPct,hl:hlFor(),interactive:true,slow:A.slow,timing:A.timing}).svg;
+  $('#slowLeg').hidden=S.metric==='freq'; fitMap(); }
+function fitMap(){ const wrap=$('#mapWrap'), svg=wrap.querySelector('svg'); if(!svg||$('#tab-process').hidden) return;
+  const W=+svg.getAttribute('width'), H=+svg.getAttribute('height');
+  if(S.fit!=='fit'){ svg.style.width=W+'px'; svg.style.height=H+'px'; wrap.style.height=''; return; }
+  const full=$('#mapCard').classList.contains('full'), top=wrap.getBoundingClientRect().top;
+  let avail=window.innerHeight-(full?top:Math.max(top,0))-(full?20:12);
+  if(!full&&avail<320) avail=window.innerHeight-24;
+  const availW=wrap.clientWidth-4, k=Math.min(1,avail/H,availW/W);
+  svg.style.width=Math.floor(W*k)+'px'; svg.style.height=Math.floor(H*k)+'px'; wrap.style.height=Math.floor(H*k+4)+'px'; }
+let fitT; window.addEventListener('resize',()=>{ clearTimeout(fitT); fitT=setTimeout(fitMap,80); });
+$$('#fitSeg button').forEach(b=>b.onclick=()=>{ S.fit=b.dataset.f; $$('#fitSeg button').forEach(x=>x.classList.toggle('on',x===b)); fitMap(); });
+$('#fullBtn').onclick=()=>{ const c=$('#mapCard'), on=!c.classList.contains('full'); c.classList.toggle('full',on); document.body.classList.toggle('noscroll',on); $('#fullBtn').textContent=on?'Close':'Expand'; fitMap(); };
+function chipsFor(trace){ const d=deviations(trace,S.ref,S.opt.vmode); if(!d.length) return `<span class="chip ref">${S.opt.vmode==='set'?'Same steps as reference':'Reference flow'}</span>`; return d.map(x=>`<span class="chip ${x.t}">${esc(x.l)}</span>`).join(''); }
+function renderVariants(){ const V=S.A.model.variants, tot=S.A.st.n||1;
+  $('#varCount').textContent=`${V.length.toLocaleString()} ${S.opt.vmode==='set'?'sets':'sequences'}`;
+  $('#variants').innerHTML=V.slice(0,60).map((v,i)=>`<button class="var${v.key===S.refKey?' ref':''}${S.sel&&S.sel.type==='variant'&&S.sel.key===v.key?' on':''}" data-v="${esc(v.key)}">
+    <div class="var-top"><span>${i+1}</span><span class="var-pct">${pctS(v.n/tot)}</span><span>${v.n.toLocaleString()}</span><span class="var-t" title="Median ${esc(SCH.durLabel)}">${fmtMin(v.st.med)}</span></div>
+    <div class="bar"><i style="width:${(v.n/V[0].n*100).toFixed(1)}%"></i></div><div class="chips">${chipsFor(v.trace)}</div>
+    <div class="seqline">${esc(v.trace.map(k=>shortL(k)).join(S.opt.vmode==='set'?' + ':' → '))}</div></button>`).join('')+(V.length>60?`<p class="note">Showing the 60 most common of ${V.length.toLocaleString()}. The rest together cover ${pctS(V.slice(60).reduce((a,v)=>a+v.n,0)/tot)}.</p>`:''); }
+$('#variants').onclick=e=>{ const b=e.target.closest('[data-v]'); if(!b) return; const k=b.dataset.v; S.sel=S.sel&&S.sel.type==='variant'&&S.sel.key===k?null:{type:'variant',key:k}; renderMap(); renderVariants(); renderSel(); };
+$('#mapWrap').onclick=e=>{ const n=e.target.closest('[data-node]'), ed=e.target.closest('[data-edge]');
+  const s=n?{type:'node',key:n.dataset.node}:ed?{type:'edge',key:ed.dataset.edge}:null;
+  S.sel=s&&S.sel&&S.sel.type===s.type&&S.sel.key===s.key?null:s; renderMap(); renderVariants(); renderSel(); };
+function selRecs(){ const s=S.sel, M=S.A.model; if(!s) return [];
+  if(s.type==='variant'){ const v=M.variants.find(x=>x.key===s.key); return v?v.recs:[]; }
+  if(s.type==='node') return S.view.filter(r=>r.trace.includes(s.key));
+  const e=M.edges.get(s.key); return e?e.recs:[]; }
+function selTitle(){ const s=S.sel; if(s.type==='node') return `${Tc()} with ${EVL(s.key)}`;
+  if(s.type==='edge'){ const [a,b]=s.key.split('>'); return `${EVL(a)} directly followed by ${EVL(b)}`; }
+  const i=S.A.model.variants.findIndex(v=>v.key===s.key); return `${S.opt.vmode==='set'?'Step set':'Sequence'} ${i+1}`+(s.key===S.refKey?' (reference flow)':''); }
+function renderSel(){ const s=S.sel; $('#selHint').hidden=!!s; $('#selCard').hidden=!s; if(!s) return;
+  const R=selRecs(); if(!R.length){ S.sel=null; $('#selHint').hidden=false; $('#selCard').hidden=true; return; }
+  const st=stats(R,S.refKey); $('#selTitle').textContent=selTitle();
+  $('#selRef').hidden=!(s.type==='variant'&&s.key!==S.refKey);
+  let extra=''; if(s.type==='edge'){ const e=S.A.model.edges.get(s.key); if(e&&e.st.n) extra=`<span>Time between <b>${fmtMin(e.st.med)}</b> median · ${fmtMin(e.st.mean)} mean · P90 ${fmtMin(e.st.p90)}</span>`; }
+  const at=SCH.attrs.slice(0,2), rows=R.slice().sort((a,b)=>(b.dur??-1)-(a.dur??-1)).slice(0,300);
+  $('#selBody').innerHTML=`<div class="sel-stats"><span><b>${R.length.toLocaleString()}</b> ${esc(T().cases)} (${pctS(R.length/(S.A.st.n||1))})</span><span>Median ${esc(SCH.durLabel)} <b>${fmtMin(st.dur.med)}</b></span>${st.dueN?`<span>By due date <b>${pctS(st.due)}</b></span>`:''}${extra}</div>
+   <div class="tbl-scroll" style="max-height:380px"><table class="t"><thead><tr><th>Case</th>${at.map(a=>`<th class="l">${esc(a.l)}</th>`).join('')}<th>${esc(shortL(SCH.start))}</th><th>${esc(shortL(SCH.end))}</th><th>Duration</th><th class="l">Sequence</th></tr></thead><tbody>${rows.map(r=>`<tr><td><button class="link" data-q="${esc(r.id)}">${esc(r.id||'–')}</button></td>${at.map(a=>`<td class="l">${esc(r.attr[a.col])}</td>`).join('')}<td>${fmtDT(r.t0)}</td><td>${fmtDT(r.t1)}</td><td>${fmtMin(r.dur)}</td><td class="l">${esc(r.trace.map(k=>shortL(k)).join(' → '))}</td></tr>`).join('')}</tbody></table></div>
+   ${R.length>300?`<p class="note">Longest 300 shown; the download has all ${R.length.toLocaleString()}.</p>`:''}`; }
+$('#selBody').onclick=e=>{ const b=e.target.closest('[data-q]'); if(b){ $('#q').value=b.dataset.q; showTab('lookup'); renderLookup(b.dataset.q); } };
+$('#selClear').onclick=()=>{ S.sel=null; renderMap(); renderVariants(); renderSel(); };
+$('#selRef').onclick=()=>{ S.refMode='custom'; S.refCustom=S.sel.key; $('#refSel option[value=custom]').disabled=false; $('#refSel').value='custom'; update(); toast('Reference flow updated'); };
+$('#selCsv').onclick=()=>{ const R=selRecs();
+  csv(['Case ID'].concat(SCH.attrs.map(a=>a.l),[EVL(SCH.start),EVL(SCH.end),`${SCH.durLabel} (min)`,'Sequence']),
+    R.map(r=>[r.id].concat(SCH.attrs.map(a=>r.attr[a.col]),[fmtDT(r.t0),fmtDT(r.t1),r.dur==null?'':Math.round(r.dur),r.trace.map(k=>EVL(k)).join(' > ')])),`${slug(SCH.name)}_selection_${stamp()}.csv`); };
+
+/* ---------- timing ---------- */
+function renderTiming(){ const A=S.A;
+  $('#timingTitle').textContent=`Each step measured from ${EVL(SCH.start).toLowerCase()}`;
+  $('#timing').innerHTML=renderTimingSvg(A.T).svg;
+  $('#timingTbl').innerHTML=`<table class="t"><thead><tr><th>Step</th><th>Recorded</th><th>Median from start</th><th>Middle half</th><th>P90</th><th>Mean</th><th>Before start</th><th>After end</th><th>Then median to end</th></tr></thead><tbody>${A.T.map(t=>`<tr><td>${esc(t.l)}</td><td>${pctS(t.recP)} <span class="note">(${t.rec})</span></td><td><b>${fmtMin(t.d.med)}</b></td><td>${fmtMin(t.d.p25)} to ${fmtMin(t.d.p75)}</td><td>${fmtMin(t.d.p90)}</td><td>${fmtMin(t.d.mean)}</td><td>${pctS(t.before)}</td><td>${t.after==null?'–':pctS(t.after)}</td><td>${t.toEnd?fmtMin(t.toEnd.med):'–'}</td></tr>`).join('')}</tbody></table>`;
+  $('#last').innerHTML=renderLastSvg(A.L).svg;
+  const minN=Math.max(1,S.edgeMin), E=[...A.model.edges.values()].filter(e=>e.a!=='S'&&e.b!=='E'&&e.st.n>=minN).sort((a,b)=>b.st.med-a.st.med);
+  $('#edges').innerHTML=`<table class="t"><thead><tr><th>Transition</th><th>n</th><th>Median</th><th>Mean</th><th>P75</th><th>P90</th></tr></thead><tbody>${E.map(e=>`<tr class="click" data-e="${e.key}"><td>${esc(EVL(e.a))} → ${esc(EVL(e.b))}${e.a===SCH.end?' <span class="note">(after the end)</span>':''}</td><td>${e.n}</td><td><b>${fmtMin(e.st.med)}</b></td><td>${fmtMin(e.st.mean)}</td><td>${fmtMin(e.st.p75)}</td><td>${fmtMin(e.st.p90)}</td></tr>`).join('')}</tbody></table>`;
+  $('#reasonsCard').hidden=!A.RS.length;
+  $('#reasons').innerHTML=A.RS.map((R,i)=>`<div><h3 style="margin-top:0">${esc(R.l)} <span class="note">${R.any.toLocaleString()} ${esc(T().cases)} (${pctS(R.anyP)}) · none recorded: median ${fmtMin(R.none.med)}</span></h3>${R.rows.length?`<div class="tbl-scroll" style="max-height:260px"><table class="t"><thead><tr><th>Reason as recorded</th><th>n</th><th>%</th><th>Median duration</th></tr></thead><tbody>${R.rows.map(x=>`<tr class="click" data-rk="r${i}" data-rv="${esc(x.v)}"><td class="wrap">${esc(x.v)}</td><td>${x.n}</td><td>${pctS(x.p)}</td><td>${fmtMin(x.st.med)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="empty-msg">None recorded in the filtered ${esc(T().cases)}.</p>`}</div>`).join(''); }
+$('#reasons').onclick=e=>{ const t=e.target.closest('[data-rk]'); if(t) addFilter(t.dataset.rk,t.dataset.rv); };
+$('#edges').onclick=e=>{ const t=e.target.closest('[data-e]'); if(!t) return; S.sel={type:'edge',key:t.dataset.e}; showTab('process'); renderMap(); renderVariants(); renderSel(); };
+$('#edgeMin').onchange=e=>{ S.edgeMin=Math.max(1,+e.target.value||1); renderTiming(); };
+
+/* ---------- groups and days ---------- */
+function bcols(){ const base=[['key','Group',x=>x.key,'l'],['n',Tc(),x=>x.n],['med','Median',x=>x.st.dur.med,'t'],['p75','P75',x=>x.st.dur.p75,'t'],['p90','P90',x=>x.st.dur.p90,'t'],['conf','Reference flow',x=>x.st.conf,'p']];
+  if(SCH.dueCol) base.push(['due','By due date',x=>x.st.due,'p']);
+  if(SCH.reasons.length){ base.push(['rsn','Delay reason recorded',x=>x.st.reason,'p']); base.push(['top','Most recorded delay reason',x=>x.top?`${x.top.v} (${x.top.n})`:'','l']); }
+  if(window.PPE_BCOLS_EXTRA) window.PPE_BCOLS_EXTRA(base,S);
+  return base; }
+const cellV=(c,x)=>{ const v=c[2](x); return c[3]==='t'?fmtMin(v):c[3]==='p'?pctS(v):(typeof v==='number'?v.toLocaleString():esc(v)); };
+function bTable(list,opts){ const med=S.A.st.dur.med, C=bcols();
+  return `<table class="t"><thead><tr>${C.map(c=>`<th class="${opts.sort?'s ':''}${c[3]==='l'?'l':''}" data-s="${c[0]}">${esc(c[0]==='key'?opts.label:c[1])}${opts.sort&&S.sort.c===c[0]?(S.sort.d>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>${list.map(x=>{ const small=x.n<S.minN, hi=!small&&med!=null&&x.st.dur.med!=null&&x.st.dur.med>med*1.25;
+    return `<tr class="${opts.click?'click':''}" ${opts.click?`data-bk="${esc(x.key)}"`:''} style="${small?'opacity:.55':''}">${C.map(c=>`<td class="${c[3]==='l'?'l':''}${c[0]==='med'&&hi?' hi':''}${c[0]==='top'?' wrap':''}">${c[0]==='key'&&opts.fmt?esc(opts.fmt(x.key)):cellV(c,x)}${c[0]==='med'&&hi?' ▲':''}</td>`).join('')}</tr>`; }).join('')}</tbody>${opts.foot?`<tfoot><tr>${C.map(c=>`<td class="${c[3]==='l'?'l':''}">${c[0]==='key'?'All filtered':cellV(c,opts.foot)}</td>`).join('')}</tr></tfoot>`:''}</table>`; }
+function allRow(){ return {key:'All',n:S.A.st.n,st:S.A.st,top:topReason(S.view),recs:S.view}; }
+function renderCompare(){ const A=S.A;
+  $('#wkNote').textContent=`Day from the ${basisLabel()} time; weekend = ${wkLabel()} (change in Settings)`;
+  const wk=['Weekday','Weekend'].map(k=>A.wk[k]).filter(Boolean);
+  $('#wk').innerHTML=bTable(wk.concat(A.dows),{label:'Day',click:false});
+  const d=FDM[S.dim]; if(!d) return; const list=breakdown(S.view,d[2],S.refKey);
+  const C=bcols(), col=C.find(c=>c[0]===S.sort.c)||C[1];
+  list.sort((a,b)=>{ const va=col[2](a), vb=col[2](b); if(va==null&&vb==null) return 0; if(va==null) return 1; if(vb==null) return -1; return (typeof va==='string'?va.localeCompare(vb):va-vb)*S.sort.d; });
+  $('#breakdown').innerHTML=bTable(list,{label:d[1],sort:true,click:true,foot:allRow(),fmt:d[3]}); }
+$('#dim').onchange=e=>{ S.dim=e.target.value; renderCompare(); };
+$('#minN').onchange=e=>{ S.minN=Math.max(1,+e.target.value||1); update(); };
+$('#breakdown').onclick=e=>{ const th=e.target.closest('th[data-s]'); if(th){ const c=th.dataset.s; S.sort=S.sort.c===c?{c,d:-S.sort.d}:{c,d:c==='key'?1:-1}; renderCompare(); return; }
+  const tr=e.target.closest('[data-bk]'); if(tr) addFilter(S.dim,tr.dataset.bk); };
+$('#bdCsv').onclick=()=>{ const d=FDM[S.dim], C=bcols(), list=breakdown(S.view,d[2],S.refKey).sort((a,b)=>b.n-a.n);
+  csv([d[1]].concat(C.slice(1).map(c=>c[1]+(c[3]==='t'?' (min)':c[3]==='p'?' (%)':''))),list.map(x=>[d[3]?d[3](x.key):x.key].concat(C.slice(1).map(c=>{ const v=c[2](x); return v==null?'':c[3]==='t'?Math.round(v):c[3]==='p'?(v*100).toFixed(1):v; }))),`${slug(SCH.name)}_breakdown_${stamp()}.csv`); };
+
+/* ---------- time of day ---------- */
+const hmBasisLabel=()=>S.hm.basis==='end'?shortL(SCH.end).toLowerCase():shortL(SCH.start).toLowerCase();
+function heatLabel(){ return `${S.hm.metric==='n'?Tc():S.hm.metric==='dur'?`Median ${SCH.durLabel} (hours)`:'% following the reference flow'} by ${hmBasisLabel()} day and hour`; }
+function renderTime(){ const Hd=heatData(S.view,S.hm.metric,S.hm.basis,S.refKey), none=!Object.keys(Hd.cells).length;
+  $$('#hmBasis button').forEach(b=>b.textContent='By '+(b.dataset.b==='end'?shortL(SCH.end):shortL(SCH.start)).toLowerCase());
+  $('#heat').innerHTML=none?`<p class="err" style="margin:0">No filtered ${esc(T().case)} has a readable ${esc(hmBasisLabel())} time, so this grid cannot be filled. See Findings → Data checks.</p>`:renderHeatSvg(Hd,hmBasisLabel()).svg;
+  $('#hour').innerHTML=renderHourSvg(S.view).svg; }
+$$('#hmBasis button').forEach(b=>b.onclick=()=>{ S.hm.basis=b.dataset.b; $$('#hmBasis button').forEach(x=>x.classList.toggle('on',x===b)); renderTime(); });
+$$('#hmMetric button').forEach(b=>b.onclick=()=>{ S.hm.metric=b.dataset.m; $$('#hmMetric button').forEach(x=>x.classList.toggle('on',x===b)); renderTime(); });
+
+/* ---------- findings ---------- */
+function renderFindings(){ $('#findings').innerHTML=S.A.findings.map(t=>`<li>${esc(t)}</li>`).join('')||`<li>No ${esc(T().cases)} in the current filters.</li>`; $('#dq').innerHTML=dqList().map(t=>`<li>${esc(t)}</li>`).join('');
+  const M=S.meta; $('#colDiag').innerHTML=`<table class="t"><thead><tr><th>Step</th><th class="l">Column</th><th>Values</th><th>Read as date</th><th class="l">Unreadable example</th><th class="l">Role in flow</th></tr></thead><tbody>${SCH.steps.map(e=>{ const D=M.diag[e.k];
+    return `<tr><td>${esc(e.l)}</td><td class="l">${esc(D.col)}</td><td>${D.non.toLocaleString()}</td><td class="${D.non&&!D.ok?'hi':''}">${D.ok.toLocaleString()}</td><td class="l">${esc(D.badEx||'')}</td><td class="l">${e.k===SCH.start?'Start':e.k===SCH.end?'End':e.happy?'Happy flow':'Optional'}</td></tr>`; }).join('')}</tbody></table>`; }
+$('#draftBtn').onclick=()=>{ const t=$('#recs'); const d=draftRecs(S.A,S.minN,basisLabel()); if(!d){ toast('Nothing to draft from the current filters',true); return; }
+  if(t.value.trim()&&!confirm('Replace the current text with a new draft?')) return; t.value=d; };
+
+/* ---------- lookup ---------- */
+function renderLookup(q){ S.lastQ=q; q=String(q||'').trim(); if(!q){ $('#lookupRes').innerHTML='<p class="empty-msg">Enter a case ID.</p>'; return; }
+  const ql=q.toLowerCase(); let R=S.all.filter(r=>r.id.toLowerCase()===ql);
+  if(!R.length) R=S.all.filter(r=>r.id.toLowerCase().includes(ql));
+  if(!R.length){ $('#lookupRes').innerHTML=`<p class="empty-msg">No ${esc(T().case)} with an ID matching "${esc(q)}" in the loaded file.</p>`; return; }
+  const more=R.length>15; R=R.slice(0,15);
+  $('#lookupRes').innerHTML=(more?'<p class="note">More than 15 matches: showing the first 15. Type the full ID to narrow.</p>':'')+R.map(encCard).join(''); }
+function encCard(r){ const TT=S.A.T, med=Object.fromEntries(TT.map(t=>[t.k,t.d.med])), inView=S.view.includes(r);
+  const v=S.A.model.variants.find(x=>x.key===r.vkey), seq=r.trace.map(k=>shortL(k)).join(' → ');
+  const fact=(l,x)=>`<div><span>${esc(l)}:</span> ${esc(x||'–')}</div>`;
+  const rows=SCH.steps.map(e=>{ const t=r.t[e.k], off=r.off[e.k], isS=e.k===SCH.start, m=isS?null:med[e.k], diff=off!=null&&m!=null?off-m:null;
+    return `<tr><td>${esc(e.l)}</td><td>${fmtDT(t)}</td><td>${isS?'–':fmtMin(off)}</td><td>${isS?'–':fmtMin(m)}</td><td class="${diff!=null&&diff>0?'hi':''}">${diff==null?'–':(diff>0?'+':'')+fmtMin(diff)}</td></tr>`; }).join('');
+  const reasons=SCH.reasons.filter(q=>r.reason[q.k]).map(q=>`<div><span>${esc(q.l)}:</span> ${esc(r.reason[q.k])}</div>`).join('')||(SCH.reasons.length?'<div><span>Delay reasons:</span> none recorded</div>':'');
+  const extra=window.PPE_CASE_EXTRA?window.PPE_CASE_EXTRA(r):'';
+  return `<div class="enc"><div class="enc-h"><b>${esc(T().case.charAt(0).toUpperCase()+T().case.slice(1))} ${esc(r.id)}</b><span>Row ${r.row}</span><span>${esc(SCH.durLabel)} <b>${fmtMin(r.dur)}</b>${S.A.st.dur.med!=null?` (filtered median ${fmtMin(S.A.st.dur.med)})`:''}</span></div>
+   <div class="facts">${SCH.attrs.map(a=>fact(a.l,a.type==='num'&&r.num[a.col]!=null?String(r.num[a.col]):r.attr[a.col])).join('')}${SCH.dueCol?fact('Due date',fmtD(r.due))+fact('Ended by due date',r.byDue==null?'–':r.byDue?'Yes':`No (${r.dueDelta} day${Math.abs(r.dueDelta)===1?'':'s'} after)`):''}${fact('Weekday / weekend',`${r.dayType} (${r.dowL}, by ${basisLabel()})`)}</div>
+   <div class="chips" style="margin-bottom:6px">${chipsFor(r.vtrace)}</div><div class="seqline" style="margin-bottom:8px">Recorded sequence: ${esc(seq)}</div>
+   <div class="chart-scroll">${renderEncSvg(r,TT).svg}</div>
+   <div class="tbl-scroll" style="margin-top:8px"><table class="t"><thead><tr><th>Step</th><th>Recorded at</th><th>From start</th><th>Filtered median</th><th>Difference</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="facts" style="margin-top:10px">${reasons}</div>${extra}
+   <div class="ctrl" style="margin-top:8px">${inView&&v?`<button class="btn ghost" data-show="${esc(r.vkey)}">Show its sequence on the map</button><span class="note" style="margin:0">${v.n.toLocaleString()} filtered ${esc(T().cases)} share it (${pctS(v.n/S.A.st.n)})</span>`:'<span class="note" style="margin:0">Outside the current filters, so it is not on the map.</span>'}</div></div>`; }
+$('#qBtn').onclick=()=>renderLookup($('#q').value);
+$('#q').onkeydown=e=>{ if(e.key==='Enter') renderLookup($('#q').value); };
+$('#lookupRes').onclick=e=>{ const b=e.target.closest('[data-show]'); if(!b) return; S.sel={type:'variant',key:b.dataset.show}; showTab('process'); renderMap(); renderVariants(); renderSel(); };
+
+/* ---------- export ---------- */
+function raster(r,scale){ scale=scale||2; return new Promise((res,rej)=>{ const img=new Image();
+  img.onload=()=>{ const c=document.createElement('canvas'); c.width=Math.round(r.w*scale); c.height=Math.round(r.h*scale); const x=c.getContext('2d');
+    x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+    c.toBlob(b=>{ if(!b) return rej(new Error('image render failed')); b.arrayBuffer().then(ab=>res({png:new Uint8Array(ab),w:r.w,h:r.h})); },'image/png'); };
+  img.onerror=()=>rej(new Error('chart render failed')); img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg); }); }
+function periodText(){ const d=S.view.map(r=>r.t1).sort((a,b)=>a-b); return d.length?`${fmtD(d[0])} to ${fmtD(d[d.length-1])}`:'none'; }
+async function exportDeck(){ const b=$('#exportBtn'); if(!S.view.length){ toast(`No ${T().cases} in the current filters`,true); return; } b.disabled=true; toast('Building slides…');
+  try{ const A=S.A;
+    const img={ map:await raster(renderMapSvgH(A.model,{ref:S.ref,order:A.order,metric:'freq',minPct:S.minPct,slow:A.slow,timing:A.timing})), timing:await raster(renderTimingSvg(A.T)),
+      last:await raster(renderLastSvg(A.L)), hour:await raster(renderHourSvg(S.view)), heat:await raster(renderHeatSvg(heatData(S.view,S.hm.metric,S.hm.basis,S.refKey),hmBasisLabel())) };
+    const d=new Date(), gen=`${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
+    const ctx={scope:scopeText(),period:periodText(),generated:gen,refLabel:refLabel(),post:S.opt.post,vmode:S.opt.vmode,basisLabel:basisLabel(),weekendLabel:wkLabel(),minN:S.minN,heatLabel:heatLabel(),recText:$('#recs').value,dq:dqList().slice(1)};
+    if(window.PPE_DECK_EXTRA) await window.PPE_DECK_EXTRA(ctx,S,raster);
+    const bytes=buildDeck(A,ctx,img);
+    download(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}),`${slug(SCH.name)}_review_${stamp()}.pptx`);
+    toast('Slides exported');
+  }catch(e){ console.error(e); toast('Export failed: '+(e.message||e),true); }
+  b.disabled=false; }
+
+/* ---------- events ---------- */
+$('#file').onchange=e=>load(e.target.files[0]);
+['#loadLbl','#cfgLbl'].forEach(id=>{ const el=$(id); if(el) el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $(el.getAttribute('for')==='cfgFile'?'#cfgFile':'#file').click(); } }; });
+['dragenter','dragover'].forEach(ev=>window.addEventListener(ev,e=>{ e.preventDefault(); $('#empty').classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>window.addEventListener(ev,e=>{ e.preventDefault(); $('#empty').classList.remove('drag'); }));
+window.addEventListener('drop',e=>{ const dt=e.dataTransfer; if(!dt) return; let f=dt.files&&dt.files[0];
+  if(!f&&dt.items) for(const it of dt.items){ if(it.kind==='file'){ f=it.getAsFile(); break; } }
+  if(!f){ toast('Nothing to load: drop the file itself (save an e-mail attachment to disk first).',true); return; }
+  if(/\.json$/i.test(f.name)) readCfgFile(f); else load(f); });
+const sb=document.getElementById('scriptBlocked'); if(sb) sb.remove();
+$('#exportBtn').onclick=exportDeck;
+$('#tabs').onclick=e=>{ const b=e.target.closest('button[data-tab]'); if(b) showTab(b.dataset.tab); };
+function showTab(t){ $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t)); $$('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t); if(t==='process') fitMap(); }
+$$('#metricSeg button').forEach(b=>b.onclick=()=>{ S.metric=b.dataset.m; $$('#metricSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderMap(); });
+$('#minPct').oninput=e=>{ S.minPct=+e.target.value; $('#minPctV').textContent=S.minPct+'%'; renderMap(); };
+$('#postChk').onchange=e=>{ S.opt.post=e.target.checked; S.sel=null; recompute(); };
+$('#refSel').onchange=e=>{ S.refMode=e.target.value; update(); };
+$$('#vmodeSeg button').forEach(b=>b.onclick=()=>{ S.opt.vmode=b.dataset.v; $$('#vmodeSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; S.refCustom=null; if(S.refMode==='custom'){ S.refMode='happy'; $('#refSel').value='happy'; } $('#refSel option[value=custom]').disabled=true; recompute(); });
+$$('#combSeg button').forEach(b=>b.onclick=()=>{ S.combine=b.dataset.c; $$('#combSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; update(); });
+$('#clearF').onclick=()=>{ S.f={}; if(window.PPE_CLEAR_SEGMENT) window.PPE_CLEAR_SEGMENT(); S.sel=null; update(); };
+$('#moreBtn').onclick=()=>{ const m=$('#more'); m.hidden=!m.hidden; $('#moreBtn').textContent=m.hidden?'More filters':'Fewer filters'; };
+$('#setBtn').onclick=()=>{ $('#setPop').hidden=!$('#setPop').hidden; };
+function syncSettingsUI(){ $('#wkDays').innerHTML=DAY_ORDER.map(d=>`<label><input type="checkbox" value="${d}"${S.opt.weekend.includes(d)?' checked':''}>${DAYS[d]}</label>`).join('');
+  $$('#basisSeg button').forEach(x=>{ x.classList.toggle('on',x.dataset.b===S.opt.basis); x.textContent=(x.dataset.b==='end'?shortL(SCH.end):shortL(SCH.start)); }); }
+$('#wkDays').onchange=()=>{ S.opt.weekend=$$('#wkDays input:checked').map(i=>+i.value); if(S.cfg) S.cfg.settings.weekend=S.opt.weekend.slice(); if(S.all.length) recompute(); };
+$$('#basisSeg button').forEach(b=>b.onclick=()=>{ S.opt.basis=b.dataset.b; if(S.cfg) S.cfg.settings.basis=S.opt.basis; $$('#basisSeg button').forEach(x=>x.classList.toggle('on',x===b)); if(S.all.length) recompute(); });
+
+// #sample opens the synthetic sample with its saved setup already applied (for demos)
+if(location.hash==='#sample'){ $('#sampleBtn').click(); applySetup(); }
+
+// hooks for optional modules (rules and risk) loaded after this file
+window.PPE={S,update,toast,esc,addFilter,showTab,applyFilters,basisLabel,wkLabel,csv,stamp,slug,exportCfg};
+})();
+</script>
+</body>
+</html>

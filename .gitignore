@@ -1,0 +1,8 @@
+node_modules/
+*.pptx
+.env
+.env.*
+.DS_Store
+Thumbs.db
+# real extracts never belong here: keep your own files outside the repository
+data/

@@ -86,7 +86,7 @@
     <nav class="tabs" role="tablist" id="tabs">
       <button class="on" data-tab="process">Process map</button>
       <button data-tab="timing">Timing and delays</button>
-      <!--@RISK_TAB_BUTTON@-->
+      <button data-tab="risk">Rules and risk</button>
       <button data-tab="compare">Groups and days</button>
       <button data-tab="time">Time of day</button>
       <button data-tab="lookup">Case lookup</button>
@@ -143,7 +143,33 @@
       <div class="card" id="reasonsCard"><div class="card-h"><h2>Recorded delay reasons</h2><span class="note" style="margin:0">Click a reason to filter to those cases</span></div><div id="reasons" class="reasons"></div></div>
     </div>
 
-    <!--@RISK_TAB@-->
+    <div id="tab-risk" class="tab" hidden>
+      <div class="card">
+        <div class="card-h"><h2>Rules</h2><span class="note" style="margin:0">Click a rule to analyse it below. Click a breach count to filter every tab to those cases. Edit rules in Setup.</span></div>
+        <div id="rulesChart" class="chart-scroll"></div>
+        <div id="rulesTbl" class="tbl-scroll" style="margin-top:10px"></div>
+      </div>
+      <div id="riskBody">
+        <div class="card">
+          <div class="card-h"><h2 id="facTitle">Factors</h2>
+            <div class="ctrl"><label class="rng">Outcome <select id="outSel"></select></label><label class="rng">Late start: on the end day at or after <select id="lateH"></select></label></div></div>
+          <div class="tgt-head" id="tgtHead"></div>
+          <p class="note" style="margin:6px 0 10px">Tick factors to build a segment you can apply as a filter. Values of a variable are each compared with all other values of that variable.</p>
+          <div id="factors" class="tbl-scroll"></div>
+          <div id="segBox" class="seg-box"></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-h"><h2>Adjusted comparison</h2></div><div id="forest" class="chart-scroll"></div><p class="note" id="forestNote"></p></div>
+          <div class="card" id="openCard"><div class="card-h"><h2>Still open at the deadline</h2></div><div id="open" class="chart-scroll"></div><p class="note" id="openNote"></p></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h2>Variation between groups</h2>
+            <div class="ctrl"><label class="rng">Group by <select id="cDim"></select></label><label class="rng">Min. cases <input id="cMin" type="number" value="10" min="1" class="num"></label></div></div>
+          <div class="grid-var"><div id="variation" class="chart-scroll"></div><div id="clinInfo"></div></div>
+          <p class="note">Each square is one group, placed by volume and by the share meeting the rule. Dashed lines show how far a group of that size can drift from the overall rate by chance. Groups below them warrant a look; groups inside them do not differ meaningfully, whatever their rank. Being outside a limit is a prompt to review, not a finding of poor practice.</p>
+        </div>
+      </div>
+    </div>
 
     <div id="tab-compare" class="tab" hidden>
       <div class="card"><div class="card-h"><h2>Weekdays and weekends</h2><span id="wkNote" class="note" style="margin:0"></span></div><div id="wk" class="tbl-scroll"></div></div>

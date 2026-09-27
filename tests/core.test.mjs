@@ -151,3 +151,26 @@ test('slide deck: valid zip, neutral document properties', ()=>{
   assert.doesNotMatch(txt,/<cp:lastModifiedBy|<Company>|<Manager>|<dc:subject/);
   assert.match(txt,/<a:theme [^>]*name="mmonfar"/);
 });
+
+test('a differently shaped file works end to end from suggested roles', ()=>{
+  // a made-up outpatient referral process, day-first text dates, a title row and a name column
+  const rnd=(i,k)=>((i*37+k*11)%50);
+  const rows=[['Referral pathway report'],['Referral ID','Patient Name','Clinic','Priority','Referred','Triaged','First appointment']];
+  for(let i=0;i<120;i++){ const d=1+(i%27), m=(i%3)+1, p=x=>String(x).padStart(2,'0');
+    rows.push([`R${1000+i}`,`Person ${i}`,['North','South','East'][i%3],i%4?'Routine':'Urgent',
+      `${p(d)}/${p(m)}/2026 ${p(8+i%8)}:${p(rnd(i,1))}`,i%10?`${p(d)}/${p(m)}/2026 ${p(12+i%6)}:${p(rnd(i,2))}`:'',`${p(Math.min(28,d+1))}/${p(m)}/2026 ${p(9+i%7)}:${p(rnd(i,3))}`]); }
+  const t=core.toTable(rows); assert.equal(t.headerRow,2);
+  const cfg=core.suggestConfig(t), role=k=>cfg.columns[k].role;
+  assert.equal(role('Patient Name'),'ignore'); assert.equal(role('Referral ID'),'id');
+  assert.equal(role('Clinic'),'attribute'); assert.equal(role('Priority'),'attribute');
+  assert.deepEqual(cfg.happyFlow,['Referred','Triaged','First appointment']);
+  const B=core.buildRecords(t,cfg); assert.equal(B.recs.length,120); assert.ok(B.meta.dfi.dayFirst);
+  assert.equal(B.recs[0].t0.toISOString().slice(0,10),'2026-01-01');
+  core.prepare(B.recs,{weekend:[6,0],basis:'start',vmode:'seq'});
+  const A=core.analyse(B.recs,{ref:core.SCH.happy,refKey:core.keyOf(core.SCH.happy,'seq')});
+  const hk=core.keyOf(core.SCH.happy,'seq'), noTriage=B.recs.filter(r=>!r.t[core.SCH.byCol.Triaged]).length;
+  assert.equal(noTriage,12,'one in ten skips triage');
+  assert.equal(A.st.conf,B.recs.filter(r=>r.vkey===hk).length/B.recs.length);
+  assert.ok(A.st.conf<=1-noTriage/B.recs.length);
+  assert.ok(A.findings.some(f=>f.includes('Triaged (')),'the poorly recorded step is reported');
+});

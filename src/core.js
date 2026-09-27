@@ -257,7 +257,13 @@ function normaliseConfig(c){
   const stepCols=Object.keys(c.columns).filter(k=>c.columns[k].role==='step');
   c.stepOrder=(c.stepOrder||[]).filter(k=>stepCols.includes(k)); for(const k of stepCols) if(!c.stepOrder.includes(k)) c.stepOrder.push(k);
   c.happyFlow=(c.happyFlow||[]).filter(k=>stepCols.includes(k));
-  c.rules=Array.isArray(c.rules)?c.rules:[];
+  c.rules=(Array.isArray(c.rules)?c.rules:[]).filter(r=>r&&typeof r==='object').map((r,i)=>{ const x={id:String(r.id||'r'+(i+1)),type:r.type,a:r.a};
+    if(r.label) x.label=String(r.label);
+    if(r.type==='within'||r.type==='order') x.b=r.b;
+    if(r.type==='within'){ x.max=+r.max; if(r.countMissing) x.countMissing=true; }
+    if(r.type==='clock'){ x.time=String(r.time||''); x.anchor=r.anchor==='start'?'start':'own'; x.dayOffset=Math.max(0,Math.round(+r.dayOffset||0)); }
+    return x; });
+  { const seen=new Set(); c.rules.forEach((r,i)=>{ while(seen.has(r.id)) r.id=r.id+'_'+i; seen.add(r.id); }); }
   c.settings=Object.assign({weekend:[6,0],basis:'start'},c.settings||{});
   return c;
 }
@@ -270,6 +276,7 @@ function validateConfig(c,header){
   if(new Set(c.happyFlow).size!==c.happyFlow.length) errors.push('A step appears twice in the happy flow.');
   const ids=Object.keys(c.columns).filter(k=>c.columns[k].role==='id'); if(ids.length>1) errors.push('Only one column can be the case ID.');
   const dues=Object.keys(c.columns).filter(k=>c.columns[k].role==='due'); if(dues.length>1) errors.push('Only one column can be the due date.');
+  (c.rules||[]).forEach((r,i)=>{ const P=ruleProblems(r,c); if(P.length) warnings.push(`Rule ${i+1} (${ruleLabel(r,c)}) is ignored: ${P.join(' ')}`); });
   if(!ids.length) warnings.push('No case ID column: cases will be numbered by row, and the lookup searches row numbers.');
   const pii=Object.keys(c.columns).filter(k=>c.columns[k].role!=='ignore'&&isPiiHeader(k));
   if(pii.length) warnings.push(`These columns look like personal data and are in use: ${pii.join(', ')}. Everything stays in this browser, but slides and downloads will carry them if shown.`);
@@ -687,6 +694,8 @@ function analyse(view,o){
   A.dows=breakdown(view,r=>r.dowL,refKey).sort((a,b)=>DAY_ORDER.indexOf(DAYS.indexOf(a.key))-DAY_ORDER.indexOf(DAYS.indexOf(b.key)));
   A.groups=SCH.attrs.map(a=>({a,list:breakdown(view,r=>r.attr[a.col],refKey).sort((x,y)=>y.n-x.n)}));
   A.findings=findings(A,o.minN||10,o.basisLabel||shortL(SCH.start));
+  if(o.rules&&o.rules.length){ const T=SCH.terms;
+    for(const x of ruleSummary(view,o.rules,SCH.cfg)) if(x.n) A.findings.push(`Rule "${x.label}": met by ${pctS(x.rate)} of the ${x.n.toLocaleString()} ${T.cases} it could be judged on (${x.breach.toLocaleString()} breaches${x.na?`, ${x.na.toLocaleString()} not evaluable`:''}).`); }
   return A;
 }
 function findings(A,minN,basisLabel){
@@ -722,6 +731,206 @@ function draftRecs(A,minN,basisLabel){
   if(low.length) R.push(`Improve recording of ${low.map(t=>t.l).join(', ')} so these steps can be measured reliably.`);
   return R.map(x=>'• '+x).join('\n');
 }
+
+/* =====================================================================
+   Rules: pure functions of (rule, case) -> met | breach | na
+   Rule types (step fields hold column names, as in the setup file):
+     within  {a, b, max}                 b recorded no later than max minutes after a
+     order   {a, b}                      b not recorded before a
+     present {a}                         a is recorded
+     clock   {a, time:'HH:MM', anchor, dayOffset}
+             anchor 'own'   : a happens before time on a's own calendar day
+             anchor 'start' : a happens before time on (start step's day + dayOffset)
+   within.countMissing: true counts a recorded a with no b as a breach (default: not evaluable).
+   ===================================================================== */
+const RULE_TYPES=['within','order','present','clock'];
+function parseHM(s){ const m=String(s||'').match(/^(\d{1,2}):(\d{2})$/); if(!m) return null; const h=+m[1], mi=+m[2]; return h<24&&mi<60?h*60+mi:null; }
+function ruleProblems(rule,cfg){
+  const C=cfg.columns, isStep=c=>C[c]&&C[c].role==='step', P=[];
+  if(!RULE_TYPES.includes(rule.type)) return ['Unknown rule type.'];
+  if(!isStep(rule.a)) P.push('The first step is not a step column.');
+  if((rule.type==='within'||rule.type==='order')&&!isStep(rule.b)) P.push('The second step is not a step column.');
+  if((rule.type==='within'||rule.type==='order')&&rule.a===rule.b) P.push('The two steps must differ.');
+  if(rule.type==='within'&&!(rule.max>0)) P.push('The time limit must be a positive number of minutes.');
+  if(rule.type==='clock'&&parseHM(rule.time)==null) P.push('The time must be written HH:MM.');
+  return P;
+}
+function ruleLabel(rule,cfg){
+  const L=c=>(cfg.columns[c]&&cfg.columns[c].label)||c;
+  if(rule.label) return rule.label;
+  if(rule.type==='within') return `${L(rule.b)} within ${fmtMin(rule.max)} of ${L(rule.a)}`;
+  if(rule.type==='order') return `${L(rule.b)} not before ${L(rule.a)}`;
+  if(rule.type==='present') return `${L(rule.a)} recorded`;
+  if(rule.type==='clock'){ const st=L(cfg.happyFlow[0]), o=rule.dayOffset||0;
+    const d=rule.anchor==='start'?(o===0?` on the day of ${st}`:o===1?` the day after ${st}`:` ${o} days after ${st}`):'';
+    return `${L(rule.a)} before ${rule.time}${d}`; }
+  return rule.type;
+}
+// Deadline for a case, where the rule has one (within, clock). Times are wall-clock minutes.
+function ruleDeadline(rule,r,S){
+  const ka=S.byCol[rule.a], ta=r.t[ka];
+  if(rule.type==='within') return ta?new Date(+ta+rule.max*6e4):null;
+  if(rule.type==='clock'){ const hm=parseHM(rule.time);
+    if(rule.anchor==='start'){ const t0=r.t0; return t0?new Date(dayKey(t0)+(rule.dayOffset||0)*864e5+hm*6e4):null; }
+    return ta?new Date(dayKey(ta)+hm*6e4):null; }
+  return null;
+}
+function evalRule(rule,r,S){
+  S=S||SCH; const ka=S.byCol[rule.a], kb=rule.b!=null?S.byCol[rule.b]:null, ta=r.t[ka], tb=kb?r.t[kb]:null;
+  if(rule.type==='present') return ta?{s:'met',v:null}:{s:'breach',v:null,why:'not recorded'};
+  if(rule.type==='order'){ if(!ta||!tb) return {s:'na',why:!ta?'first step missing':'second step missing'};
+    const v=(tb-ta)/6e4; return v>=0?{s:'met',v}:{s:'breach',v,why:'recorded earlier'}; }
+  if(rule.type==='within'){ if(!ta) return {s:'na',why:'first step missing'};
+    if(!tb) return rule.countMissing?{s:'breach',v:null,why:'second step missing'}:{s:'na',why:'second step missing'};
+    const v=(tb-ta)/6e4; return v<=rule.max?{s:'met',v}:{s:'breach',v,why:'over the limit'}; }
+  if(rule.type==='clock'){ if(!ta) return {s:'na',why:'step missing'};
+    const dl=ruleDeadline(rule,r,S); if(!dl) return {s:'na',why:'start step missing'};
+    const v=(ta-dl)/6e4; return v<0?{s:'met',v}:{s:'breach',v,why:'after the deadline'}; }
+  return {s:'na',why:'unknown rule'};
+}
+// Attach each rule's result to the cases and summarise. r.rules[id] = 'met'|'breach'|'na';
+// r.allOk = false when any rule is breached, true when at least one rule was evaluable and none breached.
+function applyRules(R,cfg){
+  const S=SCH, rules=(cfg.rules||[]).filter(x=>!ruleProblems(x,cfg).length);
+  for(const r of R){ r.rules={}; r.ruleV={}; let any=false, bad=false;
+    for(const x of rules){ const e=evalRule(x,r,S); r.rules[x.id]=e.s; r.ruleV[x.id]=e.v; if(e.s!=='na') any=true; if(e.s==='breach') bad=true; }
+    r.allOk=rules.length&&any?!bad:null; }
+  return rules;
+}
+function ruleSummary(R,rules,cfg){
+  return rules.map(x=>{ const met=R.filter(r=>r.rules[x.id]==='met').length, br=R.filter(r=>r.rules[x.id]==='breach').length, na=R.length-met-br;
+    const vals=dist(R.filter(r=>r.rules[x.id]!=='na').map(r=>r.ruleV[x.id]));
+    return {id:x.id,rule:x,label:ruleLabel(x,cfg),met,breach:br,na,n:met+br,rate:met+br?met/(met+br):null,v:vals}; });
+}
+
+/* =====================================================================
+   Risk: which cases miss an outcome (a rule), factor by factor and adjusted
+   ===================================================================== */
+function fOR(v){ return v==null?'–':v<0.01?'<0.01':v>=100?'>100':v.toFixed(2); }
+function dayStart(d){ return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()); }
+// Candidate factors: timing of the start step, weekend, missing steps, recorded delay reasons,
+// and the values of the variables marked relevant for risk (the most common value is the reference).
+function riskFactors(R,o){
+  const S=SCH, F=[], minN=o.minN||10, has=fn=>{ let y=0,n=0; for(const r of R){ const v=fn(r); if(v===true) y++; else if(v===false) n++; } return y>=minN&&n>=minN; };
+  const add=f=>{ if(has(f.fn)) F.push(f); };
+  add({id:'lateStart',l:`${shortL(S.start)} on the end day at or after ${hhmm(o.lateH)}`,fn:r=>{ if(!r.t0) return null; if(dayStart(r.t0)<dayStart(r.t1)) return false; return (r.t0-dayStart(r.t0))>=o.lateH*3600e3; }});
+  add({id:'prevDay',l:`${shortL(S.start)} the day before the end or earlier`,fn:r=>r.t0?dayStart(r.t0)<dayStart(r.t1):null});
+  add({id:'wk',l:`Weekend (${o.wkLabel}; by ${o.basisLabel} day)`,fn:r=>r.dow==null?null:r.dayType==='Weekend'});
+  for(const s of S.steps){ if(s.k===S.start||s.k===S.end) continue; add({id:'miss:'+s.k,l:`${s.l} not recorded`,fn:r=>!r.t[s.k]}); }
+  for(const q of S.reasons) add({id:'rsn:'+q.k,l:`${q.l} recorded`,fn:r=>!!r.reason[q.k]});
+  for(const a of S.attrs.filter(a=>a.risk)){
+    const cnt=new Map(); for(const r of R){ const v=r.attr[a.col]; if(v&&v!=='Not recorded') cnt.set(v,(cnt.get(v)||0)+1); }
+    const lv=[...cnt.entries()].filter(([,n])=>n>=minN).sort((x,y)=>y[1]-x[1]); if(lv.length<2) continue;
+    // dummy coding: each frequent value against all other values; the reference value (most common,
+    // or the lowest band for numbers) gets no factor of its own
+    const ref=a.type==='num'?lv.map(x=>x[0]).sort()[0]:lv[0][0];
+    for(const [v] of lv.filter(x=>x[0]!==ref).slice(0,5)) add({id:`attr:${a.col}=${v}`,l:`${a.l}: ${v}`,fn:r=>{ const x=r.attr[a.col]; return !x||x==='Not recorded'?null:x===v; }});
+  }
+  return F;
+}
+function factorTable(R,F,ok){
+  return F.map(f=>{ const E=R.filter(r=>ok(r)!=null), y=E.filter(r=>f.fn(r)===true), n=E.filter(r=>f.fn(r)===false);
+    const cy=y.length?y.filter(ok).length/y.length:null, cn=n.length?n.filter(ok).length/n.length:null;
+    let diff=null,lo=null,hi=null; if(cy!=null&&cn!=null){ diff=cy-cn; const se=Math.sqrt(cy*(1-cy)/y.length+cn*(1-cn)/n.length); lo=diff-1.96*se; hi=diff+1.96*se; }
+    return {id:f.id,l:f.l,ny:y.length,cy,nn:n.length,cn,diff,lo,hi,sig:lo!=null&&(lo>0||hi<0)}; }); }
+function erfc(x){ const z=Math.abs(x),t=1/(1+0.5*z); const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277))))))))); return x>=0?r:2-r; }
+function inv(M){ const n=M.length, A=M.map((r,i)=>[...r,...Array.from({length:n},(_,j)=>i===j?1:0)]);
+  for(let c=0;c<n;c++){ let p=c; for(let r=c+1;r<n;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r; if(Math.abs(A[p][c])<1e-10) return null;
+    [A[c],A[p]]=[A[p],A[c]]; const d=A[c][c]; for(let j=0;j<2*n;j++) A[c][j]/=d;
+    for(let r=0;r<n;r++) if(r!==c){ const f=A[r][c]; if(f) for(let j=0;j<2*n;j++) A[r][j]-=f*A[c][j]; } }
+  return A.map(r=>r.slice(n)); }
+// Logistic regression (Newton-Raphson) of missing the outcome on all factors together.
+function logitModel(R,F,ok){
+  const E=R.filter(r=>ok(r)!=null), noVar=[], sep=[];
+  const use=F.filter(f=>{ const v=E.map(r=>[f.fn(r),ok(r)]).filter(x=>x[0]!=null); const t=v.filter(x=>x[0]), n=v.filter(x=>!x[0]);
+    if(!t.length||!n.length){ noVar.push(f.l); return false; }
+    const allSame=g=>g.every(x=>x[1])||g.every(x=>!x[1]); if(allSame(t)||allSame(n)){ sep.push(f.l); return false; } return true; });
+  if(!use.length) return {err:'No factor can be modelled in this group.',noVar,sep};
+  const rows=E.filter(r=>use.every(f=>f.fn(r)!=null));
+  if(rows.length<50) return {noVar,sep,err:`Only ${rows.length} cases have every factor recorded; at least 50 are needed for an adjusted comparison.`};
+  const X=rows.map(r=>[1,...use.map(f=>f.fn(r)?1:0)]), y=rows.map(r=>ok(r)?0:1), ev=y.reduce((a,b)=>a+b,0);
+  if(ev<10||rows.length-ev<10) return {noVar,sep,err:'Too few cases meet or miss the outcome for an adjusted comparison.'};
+  const k=use.length+1; let b=new Array(k).fill(0), Hi=null;
+  const hess=()=>{ const H=Array.from({length:k},()=>new Array(k).fill(0)), g=new Array(k).fill(0);
+    for(let i=0;i<X.length;i++){ let e=0; for(let a=0;a<k;a++) e+=X[i][a]*b[a]; const p=1/(1+Math.exp(-e)), w=p*(1-p);
+      for(let a=0;a<k;a++){ if(!X[i][a]) continue; g[a]+=y[i]-p; for(let c=0;c<k;c++) if(X[i][c]) H[a][c]+=w; } } for(let a=0;a<k;a++) H[a][a]+=1e-6; return {H,g}; };
+  for(let it=0;it<40;it++){ const {H,g}=hess(); Hi=inv(H); if(!Hi) return {noVar,sep,err:'The factors overlap too much to separate their effects.'};
+    const st=Hi.map(r=>r.reduce((s,v,j)=>s+v*g[j],0)); b=b.map((v,i)=>v+st[i]); if(Math.max(...st.map(Math.abs))<1e-8) break; }
+  Hi=inv(hess().H); if(!Hi) return {noVar,sep,err:'The factors overlap too much to separate their effects.'};
+  return {n:rows.length,events:ev,noVar,sep,unstable:b.some(v=>Math.abs(v)>10),terms:use.map((f,i)=>{ const bb=b[i+1],se=Math.sqrt(Hi[i+1][i+1]);
+    return {id:f.id,l:f.l,or:Math.exp(bb),lo:Math.exp(bb-1.96*se),hi:Math.exp(bb+1.96*se),p:erfc(Math.abs(bb/se)/Math.SQRT2)}; })};
+}
+// Funnel plot data: each group's rate against the overall rate, with binomial control limits.
+function groupVariation(R,keyFn,minN,ok){ const E=R.filter(r=>ok(r)!=null); if(!E.length) return {p0:null,pts:[]};
+  const p0=E.filter(ok).length/E.length, g=new Map();
+  for(const r of E){ const k=keyFn(r); const o=g.get(k)||{n:0,c:0}; o.n++; if(ok(r)) o.c++; g.set(k,o); }
+  const pts=[...g.entries()].filter(([,o])=>o.n>=minN).map(([key,o])=>{ const p=o.c/o.n, sd=Math.sqrt(p0*(1-p0)/o.n)||1e-9;
+    const z=(p-p0)/sd; return {key,n:o.n,c:o.c,p,z,flag:z<-3.09?'bad':z<-1.96?'warn':z>1.96?'good':''}; }).sort((a,b)=>a.z-b.z);
+  return {p0,pts,total:E.length,minN}; }
+// For cases that missed a deadline rule: which steps were still open at the deadline.
+function openAtDeadline(R,rule){
+  const S=SCH, ka=S.byCol[rule.a], late=R.filter(r=>r.rules&&r.rules[rule.id]==='breach'&&r.t[ka]), n=late.length;
+  const rows=S.steps.filter(e=>e.k!==ka&&e.k!==S.start).map(e=>{ let after=0,none=0;
+    for(const r of late){ const dl=ruleDeadline(rule,r,S), t=r.t[e.k]; if(!dl) continue;
+      if(!t||t>r.t[ka]) none++; else if(t>dl) after++; }
+    return {k:e.k,l:e.l,after,none,pa:n?after/n:0,pn:n?none/n:0}; });
+  const lastM=new Map(); for(const r of late){ const pre=r.ev.filter(x=>x.k!==ka&&x.t<=r.t[ka]); const k=pre.length?pre[pre.length-1].k:'none'; lastM.set(k,(lastM.get(k)||0)+1); }
+  return {n,rows:rows.sort((a,b)=>b.pa-a.pa),last:[...lastM.entries()].map(([k,c])=>({k,c,p:n?c/n:0})).sort((a,b)=>b.c-a.c)};
+}
+function riskAnalyse(R,rule,o){ const ok=r=>r.rules[rule.id]==='met'?true:r.rules[rule.id]==='breach'?false:null;
+  const F=riskFactors(R.filter(r=>ok(r)!=null),o), E=R.filter(r=>ok(r)!=null);
+  return {rule,ok,F,table:factorTable(R,F,ok),model:logitModel(R,F,ok),clin:o.clinFn?groupVariation(R,o.clinFn,o.clinMin||10,ok):{p0:null,pts:[]},
+    open:(rule.type==='within'||rule.type==='clock')?openAtDeadline(R,rule):null,
+    met:E.length?E.filter(ok).length/E.length:null,metN:E.filter(ok).length,n:E.length}; }
+
+/* ---------- rule and risk SVGs ---------- */
+function renderForestSvg(M,outcome){ const T=M.terms||[], W=820, rowH=32, H=58+Math.max(1,T.length)*rowH+24, x0=340, x1=W-170;
+  let s=svgOpen(W,H);
+  if(M.err) return {svg:s+`<text x="20" y="40" font-size="13" fill="${PAL.ink}">${xmlEsc(M.err)}</text></svg>`,w:W,h:H};
+  const lo=Math.max(1/16,Math.min(0.5,...T.map(t=>t.lo))), hi=Math.min(16,Math.max(2,...T.map(t=>t.hi))), L=Math.log(lo), R=Math.log(hi), X=v=>x0+(Math.log(Math.min(hi,Math.max(lo,v)))-L)/(R-L)*(x1-x0);
+  s+=`<text x="${X(1)-6}" y="16" text-anchor="end" font-size="11" fill="${PAL.teal}">← less likely to miss</text><text x="${X(1)+6}" y="16" font-size="11" fill="${SEM.alert}">more likely to miss →</text><text x="${W-8}" y="16" text-anchor="end" font-size="10" letter-spacing="1" fill="${PAL.ink2}">ODDS RATIO (95% CI)</text>`;
+  [0.0625,0.125,0.25,0.5,1,2,4,8,16].filter(v=>v>=lo&&v<=hi).forEach(v=>{ const x=X(v); s+=`<line x1="${x}" x2="${x}" y1="30" y2="${H-24}" stroke="${v===1?PAL.ink:PAL.rule}" stroke-width="${v===1?1.2:1}"${v===1?'':' stroke-dasharray="5 5"'}/><text x="${x}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="${PAL.ink2}">${v<0.25?v.toFixed(3).replace(/0+$/,''):v}</text>`; });
+  T.forEach((t,i)=>{ const y=46+i*rowH, up=t.lo>1, dn=t.hi<1, col=up?SEM.alert:dn?PAL.teal:PAL.ink3;
+    s+=`<text x="${x0-12}" y="${y+4}" text-anchor="end" font-size="11.5" fill="${PAL.ink}" font-weight="${up||dn?700:500}">${xmlEsc(t.l.length>52?t.l.slice(0,51)+'…':t.l)}</text>`;
+    s+=`<line x1="${X(t.lo)}" x2="${X(t.hi)}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="2.5"/><rect x="${X(t.or)-6}" y="${y-6}" width="12" height="12" fill="${col}"/>`;
+    s+=`<text x="${W-8}" y="${y+4}" text-anchor="end" font-size="11.5" fill="${up||dn?col:PAL.ink2}" font-weight="600">${xmlEsc(`${fOR(t.or)} (${fOR(t.lo)}–${fOR(t.hi)})${up?' higher':dn?' lower':''}`)}</text>`; });
+  return {svg:s+'</svg>',w:W,h:H}; }
+function renderVariationSvg(V,labelFn,selKey,outcome){ const W=780,H=380,x0=56,x1=W-20,y0=20,y1=H-46, P=V.pts;
+  let s=svgOpen(W,H);
+  if(!P.length||V.p0==null) return {svg:s+`<text x="20" y="40" font-size="13" fill="${PAL.ink}">No group reaches the minimum number of ${xmlEsc(SCH.terms.cases)}.</text></svg>`,w:W,h:H};
+  const maxN=Math.max(...P.map(p=>p.n))*1.08, X=n=>x0+n/maxN*(x1-x0), Y=p=>y1-p*(y1-y0), p0=V.p0;
+  [0,25,50,75,100].forEach(v=>{ s+=`<line x1="${x0}" x2="${x1}" y1="${Y(v/100)}" y2="${Y(v/100)}" stroke="${PAL.rule}"/><text x="${x0-8}" y="${Y(v/100)+4}" text-anchor="end" font-size="10.5" fill="${PAL.ink2}">${v}%</text>`; });
+  const lim=(z,sgn)=>{ let d=''; for(let i=0;i<=80;i++){ const nm=Math.max(2,V.minN||2), n=nm+(maxN-nm)*i/80; const v=Math.min(1,Math.max(0,p0+sgn*z*Math.sqrt(p0*(1-p0)/n))); d+=(i?'L':'M')+X(n).toFixed(1)+','+Y(v).toFixed(1); } return d; };
+  s+=`<path d="${lim(3.09,-1)}" fill="none" stroke="${PAL.ink}" stroke-dasharray="2 3"/><path d="${lim(1.96,-1)}" fill="none" stroke="${PAL.ink3}" stroke-dasharray="5 5"/><path d="${lim(1.96,1)}" fill="none" stroke="${PAL.ink3}" stroke-dasharray="5 5"/><path d="${lim(3.09,1)}" fill="none" stroke="${PAL.ink}" stroke-dasharray="2 3"/>`;
+  s+=`<line x1="${x0}" x2="${x1}" y1="${Y(p0)}" y2="${Y(p0)}" stroke="${PAL.teal}" stroke-width="1.5"/><text x="${x1}" y="${Y(p0)-5}" text-anchor="end" font-size="10.5" fill="${PAL.teal}" font-weight="600">Overall ${pctS(p0)} met</text>`;
+  const C={bad:SEM.alert,warn:SEM.skip,good:PAL.teal,'':PAL.ink3};
+  P.forEach(p=>{ const on=selKey===p.key;
+    s+=`<g data-clin="${xmlEsc(p.key)}" style="cursor:pointer"><title>${xmlEsc(labelFn(p.key))}: ${pctS(p.p)} of ${p.n} met ${xmlEsc(outcome)}</title><rect x="${(X(p.n)-(on?7:5)).toFixed(1)}" y="${(Y(p.p)-(on?7:5)).toFixed(1)}" width="${on?14:10}" height="${on?14:10}" fill="${C[p.flag]}" fill-opacity="${p.flag?0.95:0.7}" stroke="${on?PAL.ink:'#FFFFFF'}" stroke-width="${on?2.5:1}"/></g>`;
+    if(p.flag==='bad'||p.flag==='warn'||on) s+=`<text x="${(X(p.n)+9).toFixed(1)}" y="${(Y(p.p)+4).toFixed(1)}" font-size="10.5" fill="${PAL.ink}" font-weight="700" pointer-events="none">${xmlEsc(labelFn(p.key))}${p.flag==='bad'?' (below 99.8%)':p.flag==='warn'?' (below 95%)':''}</text>`; });
+  s+=`<text x="${(x0+x1)/2}" y="${H-10}" text-anchor="middle" font-size="10" letter-spacing="1" fill="${PAL.ink2}">${xmlEsc(SCH.terms.cases.toUpperCase())} (VOLUME)</text><text x="${x0}" y="${H-10}" font-size="10.5" fill="${PAL.ink2}">0</text><text x="${x1}" y="${H-10}" text-anchor="end" font-size="10.5" fill="${PAL.ink2}">${Math.round(maxN)}</text>`;
+  s+=`<g font-size="10.5" fill="${PAL.ink2}"><line x1="${x0+8}" x2="${x0+30}" y1="${y1+22}" y2="${y1+22}" stroke="${PAL.ink3}" stroke-dasharray="5 5"/><text x="${x0+34}" y="${y1+26}">95% limits</text><line x1="${x0+110}" x2="${x0+132}" y1="${y1+22}" y2="${y1+22}" stroke="${PAL.ink}" stroke-dasharray="2 3"/><text x="${x0+136}" y="${y1+26}">99.8% limits</text></g>`;
+  return {svg:s+'</svg>',w:W,h:H}; }
+function renderOpenSvg(O,rule){ const rows=O?O.rows:[], W=820, LW=220, rowH=28, H=40+rows.length*rowH+30, bw=W-LW-190;
+  let s=svgOpen(W,H);
+  if(!O||!O.n) return {svg:s+`<text x="20" y="40" font-size="13" fill="${PAL.ink}">No ${xmlEsc(SCH.terms.cases)} missed this deadline.</text></svg>`,w:W,h:H};
+  s+=`<text x="${LW}" y="18" font-size="11" fill="${PAL.ink2}">Share of the ${O.n.toLocaleString()} ${xmlEsc(SCH.terms.cases)} that missed the deadline</text>`;
+  [0,25,50,75,100].forEach(v=>{ const x=LW+bw*v/100; s+=`<line x1="${x}" x2="${x}" y1="28" y2="${H-30}" stroke="${PAL.rule}"/><text x="${x}" y="${H-16}" text-anchor="middle" font-size="10" fill="${PAL.ink2}">${v}%</text>`; });
+  rows.forEach((r,i)=>{ const y=36+i*rowH+rowH/2, wa=bw*r.pa, wn=bw*r.pn;
+    s+=`<text x="${LW-10}" y="${y+4}" text-anchor="end" font-size="11.5" font-weight="600" fill="${PAL.ink}">${xmlEsc(r.l)}</text>`;
+    s+=`<rect x="${LW}" y="${y-8}" width="${wa}" height="16" fill="${PAL.ink}"><title>${xmlEsc(`${r.l}: completed after the deadline in ${r.after} of ${O.n} (${pctS(r.pa)})`)}</title></rect>`;
+    s+=`<rect x="${LW+wa}" y="${y-8}" width="${wn}" height="16" fill="${PAL.t4}"><title>${xmlEsc(`${r.l}: not recorded before the rule's step in ${r.none} (${pctS(r.pn)})`)}</title></rect>`;
+    s+=`<text x="${LW+bw+10}" y="${y+4}" font-size="11" fill="${PAL.ink}" font-weight="700">${pctS(r.pa)}</text><text x="${LW+bw+56}" y="${y+4}" font-size="10.5" fill="${PAL.ink2}">${r.pn?pctS(r.pn)+' not recorded':''}</text>`; });
+  const ly=H-4; s+=`<rect x="${LW}" y="${ly-9}" width="10" height="10" fill="${PAL.ink}"/><text x="${LW+14}" y="${ly}" font-size="10.5" fill="${PAL.ink}">Completed after the deadline (still open at it)</text><rect x="${LW+290}" y="${ly-9}" width="10" height="10" fill="${PAL.t4}"/><text x="${LW+304}" y="${ly}" font-size="10.5" fill="${PAL.ink}">Not recorded before the rule's step</text>`;
+  return {svg:s+'</svg>',w:W,h:H}; }
+function renderRulesSvg(RS){ const W=860,LW=300,rowH=30,H=30+Math.max(1,RS.length)*rowH+10,bw=W-LW-170;
+  let s=svgOpen(W,H);
+  if(!RS.length) return {svg:s+`<text x="20" y="36" font-size="13" fill="${PAL.ink}">No rules defined. Add them in Setup → Rules.</text></svg>`,w:W,h:H};
+  [0,25,50,75,100].forEach(v=>{ const x=LW+bw*v/100; s+=`<line x1="${x}" x2="${x}" y1="18" y2="${H-8}" stroke="${PAL.rule}"/><text x="${x}" y="13" text-anchor="middle" font-size="10" fill="${PAL.ink2}">${v}%</text>`; });
+  RS.forEach((x,i)=>{ const y=30+i*rowH+rowH/2-6, w=x.rate==null?0:bw*x.rate;
+    s+=`<text x="${LW-10}" y="${y+4}" text-anchor="end" font-size="11.5" font-weight="600" fill="${PAL.ink}">${xmlEsc(x.label.length>44?x.label.slice(0,43)+'…':x.label)}</text>`;
+    s+=`<rect x="${LW}" y="${y-8}" width="${bw}" height="16" fill="${PAL.t6}"/><rect x="${LW}" y="${y-8}" width="${w}" height="16" fill="${PAL.teal}"><title>${xmlEsc(`${x.label}: met in ${x.met} of ${x.n} evaluable (${pctS(x.rate)}); ${x.breach} breaches; ${x.na} not evaluable`)}</title></rect>`;
+    s+=`<text x="${LW+bw+10}" y="${y+4}" font-size="11" fill="${PAL.ink}"><tspan font-weight="700">${pctS(x.rate)}</tspan><tspan fill="${PAL.ink2}"> met · ${x.breach.toLocaleString()} breaches</tspan></text>`; });
+  return {svg:s+'</svg>',w:W,h:H}; }
 
 /* =====================================================================
    ZIP writer and PPTX writer (stored zip, hand-written OOXML)
@@ -965,8 +1174,14 @@ const SAMPLE_CONFIG={
   },
   stepOrder:['discharge_order_at','med_reconciliation_at','discharge_summary_at','pharmacy_ready_at','nursing_ready_at','transport_arranged_at','discharged_at'],
   happyFlow:['discharge_order_at','med_reconciliation_at','discharge_summary_at','pharmacy_ready_at','nursing_ready_at','discharged_at'],
-  rules:[],
+  rules:[
+    {id:'r1',type:'within',a:'discharge_order_at',b:'discharged_at',max:360},
+    {id:'r2',type:'clock',a:'discharged_at',time:'14:00',anchor:'own',label:'Discharged before 14:00'},
+    {id:'r3',type:'order',a:'discharge_order_at',b:'med_reconciliation_at'},
+    {id:'r4',type:'within',a:'pharmacy_ready_at',b:'nursing_ready_at',max:60},
+    {id:'r5',type:'present',a:'discharge_summary_at'}
+  ],
   settings:{weekend:[6,0],basis:'start'}
 };
 
-if(typeof module!=='undefined') module.exports={PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};
+if(typeof module!=='undefined') module.exports={PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,RULE_TYPES,parseHM,ruleProblems,ruleLabel,ruleDeadline,evalRule,applyRules,ruleSummary,riskFactors,factorTable,logitModel,groupVariation,openAtDeadline,riskAnalyse,renderForestSvg,renderVariationSvg,renderOpenSvg,renderRulesSvg,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};

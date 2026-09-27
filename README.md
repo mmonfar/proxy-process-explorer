@@ -32,8 +32,30 @@ This tool does the first list honestly and says so on every slide it exports. Fo
 3. Walk through the setup:
    - **Columns**: each column gets a role (step timestamp, case ID, variable, delay reason, due date, or ignore). Roles are suggested from the values. Columns whose names look like personal data (names, dates of birth, record numbers, contact details) are ignored by default.
    - **Happy flow**: put the steps in the order they should happen and tick the ones that belong to the expected path. The first ticked step starts the clock; the last ticked step ends the case.
+   - **Rules**: optional expectations, such as "discharged within 6 h of the order", "medicines reconciled never before the order", "summary recorded" or "discharged before 14:00". Each rule shows its result on the loaded file as you add it.
    - **Variables**: tick the variables that are relevant for risk.
 4. Explore the tabs, then **Export slides (.pptx)** for a report built from the current filters.
+
+## What the tabs show
+
+| Tab | Content |
+|---|---|
+| Process map | Directly-follows graph against the reference flow (happy flow, most common sequence, or any sequence you pick), plus the list of sequences and how each differs from the reference. Click a step, arrow or sequence to list its cases. |
+| Timing and delays | Each step measured from the start step, the step most often completed last, the slowest transitions, and the recorded delay reasons. |
+| Rules and risk | Share of cases meeting each rule. For the rule you pick: factor-by-factor comparison, an adjusted comparison, which steps were still open at the deadline, and a funnel plot by group. |
+| Groups and days | Any variable, day of week, weekday or weekend, month, delay reason or rule result as a breakdown table. |
+| Time of day | Day-by-hour grid of cases, median duration or share following the reference flow. |
+| Case lookup | One case against the filtered medians, with its rule results. |
+| Findings | Plain statements calculated from the filtered cases, a draft of recommendations to edit, and data checks. |
+
+## Rules and risk: method
+
+- **Rules** are pure functions of one case: *met*, *breach*, or *not evaluable* when a step they need is missing. Four types: a step within a time limit of another, a step never before another, a step that must be recorded, and a step before a clock time (on its own day, or on the start day plus N days, which handles cases that run past midnight).
+- **Factors** are built from the setup: the start step late on the end day, the start the day before or earlier, weekend, each non-anchor step not recorded, each delay reason recorded, and each frequent value of the variables marked relevant for risk (dummy coded against all other values). Factors with fewer than the minimum number of cases on either side are left out.
+- **Factor table**: share meeting the rule with and without the factor, the difference and its 95% confidence interval (normal approximation).
+- **Adjusted comparison**: logistic regression of a breach on all factors together (Newton-Raphson), reported as odds ratios with 95% intervals. Factors that do not vary, or that perfectly separate the outcome, are named and left out. Fewer than 50 complete cases or 10 events on either side: no model.
+- **Funnel plot**: each group's rate against the overall rate, with binomial limits at 95% and 99.8% for the group's volume.
+- All of it describes associations in the loaded data. None of it establishes a cause, and a group outside a limit is a prompt to review, not a finding of poor practice.
 
 **Export setup (.json)** saves the choices. Import it next month and the same file layout is set up in one click. The last setup used for a file layout is also remembered in the browser.
 
@@ -77,8 +99,8 @@ npm test          # node:test suite
 ## Layout
 
 ```
-src/core.js         parsing, column profiling, setup, analysis, SVG charts, PPTX writer, synthetic generator
-src/ui.js           setup wizard and explorer tabs
+src/core.js         parsing, column profiling, setup, analysis, rules engine, risk statistics, SVG charts, PPTX writer, synthetic generator
+src/ui.js           setup wizard (columns, happy flow, rules, variables) and explorer tabs
 src/styles.css      page styles
 src/index.html      page template
 build.mjs           inlines the above into dist/process_explorer.html

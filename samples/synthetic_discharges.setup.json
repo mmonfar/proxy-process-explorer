@@ -108,7 +108,42 @@
     "nursing_ready_at",
     "discharged_at"
   ],
-  "rules": [],
+  "rules": [
+    {
+      "id": "r1",
+      "type": "within",
+      "a": "discharge_order_at",
+      "b": "discharged_at",
+      "max": 360
+    },
+    {
+      "id": "r2",
+      "type": "clock",
+      "a": "discharged_at",
+      "label": "Discharged before 14:00",
+      "time": "14:00",
+      "anchor": "own",
+      "dayOffset": 0
+    },
+    {
+      "id": "r3",
+      "type": "order",
+      "a": "discharge_order_at",
+      "b": "med_reconciliation_at"
+    },
+    {
+      "id": "r4",
+      "type": "within",
+      "a": "pharmacy_ready_at",
+      "b": "nursing_ready_at",
+      "max": 60
+    },
+    {
+      "id": "r5",
+      "type": "present",
+      "a": "discharge_summary_at"
+    }
+  ],
   "settings": {
     "weekend": [
       6,

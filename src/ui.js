@@ -51,8 +51,7 @@ function openTable(table,label,presetCfg){
   else { const saved=store.get(table.header); S.draft=saved?mergeConfig(saved,table,S.profile).cfg:suggestConfig(table,S.profile); if(saved) note='Setup restored from the last time this file layout was used in this browser.'; }
   $('#fileName').textContent=label; openWizard(0,note);
 }
-$('#sampleBtn').onclick=()=>{ const {header,rows}=synthRows(42,1200); openTable(toTable([header,...rows],'synthetic'),'Synthetic sample (1,200 made-up cases)',SAMPLE_CONFIG_UI()); };
-function SAMPLE_CONFIG_UI(){ return typeof SAMPLE_CONFIG_FULL!=='undefined'?SAMPLE_CONFIG_FULL:SAMPLE_CONFIG; }
+$('#sampleBtn').onclick=()=>{ const {header,rows}=synthRows(42,1200); openTable(toTable([header,...rows],'synthetic'),'Synthetic sample (1,200 made-up cases)',SAMPLE_CONFIG); };
 async function readCfgFile(file){
   try{ const c=JSON.parse(await file.text()); if(!c||typeof c!=='object'||!c.columns) throw new Error('This file is not a setup exported by this page.');
     if(S.table&&!$('#wiz').hidden){ const m=mergeConfig(c,S.table,S.profile); S.draft=m.cfg; openWizard(S.wizStep,m.dropped.length?`Imported. Columns not in this file were left out: ${m.dropped.join(', ')}.`:'Setup imported.'); }
@@ -75,7 +74,6 @@ const WSTEPS=[
   {id:'vars',t:'Variables',render:wVars}
 ];
 const WS=id=>WSTEPS.find(w=>w.id===id);
-if(typeof window.PPE_WIZARD_EXTRA==='function') window.PPE_WIZARD_EXTRA(WSTEPS);
 function openWizard(step,note){
   S.wizStep=step||0; $('#empty').hidden=true; $('#app').hidden=true; $('#wiz').hidden=false;
   $('#wizCancel').hidden=!S.cfg; $('#wizFile').textContent=S.fileLabel+' · '+S.table.data.length.toLocaleString()+' rows · header on row '+S.table.headerRow;
@@ -96,7 +94,7 @@ function setDraft(fn){ fn(S.draft); S.draft=normaliseConfig(S.draft); }
 $('#wizSteps').onclick=e=>{ const b=e.target.closest('[data-ws]'); if(!b) return; S.wizNote=''; S.wizStep=+b.dataset.ws; renderWizard(); };
 $('#wizBack').onclick=()=>{ if(S.wizStep>0){ S.wizNote=''; S.wizStep--; renderWizard(); } };
 $('#wizNext').onclick=()=>{ if(S.wizStep<WSTEPS.length-1){ S.wizNote=''; S.wizStep++; renderWizard(); window.scrollTo({top:0}); return; } applySetup(); };
-$('#wizCancel').onclick=()=>{ S.draft=null; $('#wiz').hidden=true; $('#app').hidden=false; };
+$('#wizCancel').onclick=()=>{ S.draft=null; setSchema(S.cfg); $('#wiz').hidden=true; $('#app').hidden=false; };
 
 function wColumns(){
   const c=S.draft;
@@ -171,10 +169,10 @@ function applySetup(){
     $('#refSel').value='happy'; $('#refSel option[value=custom]').disabled=true;
     $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
     $('#subTitle').textContent=`${S.cfg.name} · ${S.cfg.happyFlow.length} happy-flow steps · ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`;
-    syncSettingsUI(); buildFilters(); recompute(); showTab('process'); toast(`Loaded ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`);
+    setupRulesUI(); syncSettingsUI(); buildFilters(); recompute(); showTab('process'); toast(`Loaded ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`);
   }catch(e){ console.error(e); toast(e.message||String(e),true); }
 }
-$('#setupBtn').onclick=()=>{ S.draft=normaliseConfig(S.cfg); openWizard(0); };
+$('#setupBtn').onclick=()=>{ if(!S.table||!S.cfg) return; S.draft=normaliseConfig(S.cfg); openWizard(0); };
 
 /* =====================================================================
    Filters
@@ -184,7 +182,8 @@ function buildFilters(){
     .concat([['dayType','Weekday / weekend',r=>r.dayType],['dowL','Day of week',r=>r.dowL],['month','Month (end step)',r=>r.month,monthLabel]])
     .concat(SCH.reasons.map((q,i)=>['r'+i,q.l,r=>r.reason[q.k]||'None recorded']))
     .concat(SCH.dueCol?[['due','Ended by due date',r=>r.byDue==null?'No due date':(r.byDue?'Yes':'No')]]:[])
-    .concat(typeof window.PPE_FILTER_EXTRA==='function'?window.PPE_FILTER_EXTRA():[]);
+    .concat(S.rules.length?[['allRules','Rules',r=>r.allOk==null?'No rule evaluable':r.allOk?'All rules met':'At least one breach']]:[])
+    .concat(S.rules.map((x,i)=>['u'+i,ruleText(x),r=>({met:'Met',breach:'Breach',na:'Not evaluable'})[r.rules[x.id]]]));
   FDM=Object.fromEntries(FD.map(d=>[d[0],d]));
   $('#fPrimary').innerHTML=FD.slice(0,PRIMARY).map(msHtml).join('');
   $('#more').innerHTML=FD.slice(PRIMARY).map(msHtml).join('');
@@ -214,7 +213,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('.ms-btn'); if(b
   if(!e.target.closest('.pop')) closePops(); if(!e.target.closest('#setPop')&&e.target.id!=='setBtn') $('#setPop').hidden=true; });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePops(); $('#setPop').hidden=true; if($('#mapCard').classList.contains('full')) $('#fullBtn').click(); } });
 function activeF(){ return FD.filter(d=>S.f[d[0]]&&S.f[d[0]].size); }
-function extraFilterFns(){ return typeof window.PPE_SEGMENT_FNS==='function'?window.PPE_SEGMENT_FNS():[]; }
+function extraFilterFns(){ return segFns(); }
 function applyFilters(noSeg){ const act=activeF(), SF=noSeg?[]:extraFilterFns();
   return S.all.filter(r=>{ if(SF.length&&!SF.every(f=>f.fn(r)===true)) return false;
     if(!act.length) return true; const m=act.map(([k,,fn])=>S.f[k].has(String(fn(r)))); return S.combine==='and'?m.every(Boolean):m.some(Boolean); }); }
@@ -226,7 +225,7 @@ function renderChips(){ const act=activeF(), sf=extraFilterFns(); let h='';
   if(sf.length) h+=`${act.length?'<span class="join">and</span>':''}<span class="fchip">Segment: ${esc(sf.map(f=>f.l).join(' and '))}<button data-rmseg="1" aria-label="Remove segment">×</button></span>`;
   if(act.length||sf.length) h+=`<span class="note" style="margin:0 0 0 6px">${S.view.length.toLocaleString()} of ${S.all.length.toLocaleString()} ${esc(T().cases)}</span>`;
   $('#fchips').innerHTML=h; }
-$('#fchips').onclick=e=>{ if(e.target.closest('[data-rmseg]')){ if(window.PPE_CLEAR_SEGMENT) window.PPE_CLEAR_SEGMENT(); S.sel=null; update(); return; } const b=e.target.closest('[data-rm]'); if(!b) return; delete S.f[b.dataset.rm]; S.sel=null; update(); };
+$('#fchips').onclick=e=>{ if(e.target.closest('[data-rmseg]')){ S.segOn=false; S.sel=null; update(); return; } const b=e.target.closest('[data-rm]'); if(!b) return; delete S.f[b.dataset.rm]; S.sel=null; update(); };
 function addFilter(k,v){ const s=S.f[k]||(S.f[k]=new Set()); s.has(v)?s.delete(v):s.add(v); S.sel=null; update(); window.scrollTo({top:0,behavior:'smooth'}); }
 
 /* =====================================================================
@@ -242,9 +241,9 @@ function refLabel(){ const src=S.refMode==='top'?'most common sequence in the fi
   return `${S.ref.map(k=>EVL(k)).join(' → ')} (${src}${S.opt.vmode==='set'?', compared by steps only':''})`; }
 function update(){
   S.view=applyFilters(); computeRef();
-  S.A=analyse(S.view,{ref:S.ref,refKey:S.refKey,minN:S.minN,basisLabel:basisLabel()});
+  S.A=analyse(S.view,{ref:S.ref,refKey:S.refKey,minN:S.minN,basisLabel:basisLabel(),rules:S.rules});
   syncFilterButtons(); renderChips(); renderWarn(); renderKpis(); renderMap(); renderVariants(); renderSel(); renderTiming(); renderCompare(); renderTime(); renderFindings();
-  if(window.PPE_RENDER_EXTRA) window.PPE_RENDER_EXTRA(S);
+  renderRisk();
   if(S.lastQ) renderLookup(S.lastQ);
 }
 function renderWarn(){ const M=S.meta, w=[], cases=T().cases;
@@ -275,7 +274,7 @@ function renderKpis(){ const st=S.A.st, set=S.opt.vmode==='set', A=S.A;
     [pctS(st.conf),set?'Same steps as reference':'Followed the reference flow',`${A.model.variants.length.toLocaleString()} distinct ${set?'step sets':'sequences'}`]];
   if(st.dueN) K.push([pctS(st.due),'Ended by due date',`${st.dueN.toLocaleString()} with a due date`]);
   if(SCH.reasons.length) K.push([pctS(st.reason),'Any delay reason',SCH.reasons.map(r=>r.l).join(', ')]);
-  if(window.PPE_KPI_EXTRA) window.PPE_KPI_EXTRA(K,S);
+  if(S.rules.length) K.push([pctS(allRulesRate(S.view)),'Met every rule',`${S.rules.length} rule${S.rules.length===1?'':'s'} · see Rules and risk`]);
   const L0=A.L.find(x=>x.k!=='none'); if(K.length<6&&L0) K.push([pctS(L0.p),'Last step: '+shortL(L0.k),`then median ${fmtMin(L0.st.med)} to the end`]);
   $('#kpis').style.gridTemplateColumns=`repeat(${Math.min(6,K.length)},minmax(0,1fr))`;
   $('#kpis').innerHTML=K.slice(0,6).map(k=>`<div class="kpi"><b>${esc(k[0])}</b><span>${esc(k[1])}</span><small>${esc(k[2])}</small></div>`).join(''); }
@@ -353,7 +352,7 @@ $('#edgeMin').onchange=e=>{ S.edgeMin=Math.max(1,+e.target.value||1); renderTimi
 function bcols(){ const base=[['key','Group',x=>x.key,'l'],['n',Tc(),x=>x.n],['med','Median',x=>x.st.dur.med,'t'],['p75','P75',x=>x.st.dur.p75,'t'],['p90','P90',x=>x.st.dur.p90,'t'],['conf','Reference flow',x=>x.st.conf,'p']];
   if(SCH.dueCol) base.push(['due','By due date',x=>x.st.due,'p']);
   if(SCH.reasons.length){ base.push(['rsn','Delay reason recorded',x=>x.st.reason,'p']); base.push(['top','Most recorded delay reason',x=>x.top?`${x.top.v} (${x.top.n})`:'','l']); }
-  if(window.PPE_BCOLS_EXTRA) window.PPE_BCOLS_EXTRA(base,S);
+  if(S.rules.length) base.push(['rules','All rules met',x=>allRulesRate(x.recs),'p']);
   return base; }
 const cellV=(c,x)=>{ const v=c[2](x); return c[3]==='t'?fmtMin(v):c[3]==='p'?pctS(v):(typeof v==='number'?v.toLocaleString():esc(v)); };
 function bTable(list,opts){ const med=S.A.st.dur.med, C=bcols();
@@ -405,7 +404,7 @@ function encCard(r){ const TT=S.A.T, med=Object.fromEntries(TT.map(t=>[t.k,t.d.m
   const rows=SCH.steps.map(e=>{ const t=r.t[e.k], off=r.off[e.k], isS=e.k===SCH.start, m=isS?null:med[e.k], diff=off!=null&&m!=null?off-m:null;
     return `<tr><td>${esc(e.l)}</td><td>${fmtDT(t)}</td><td>${isS?'–':fmtMin(off)}</td><td>${isS?'–':fmtMin(m)}</td><td class="${diff!=null&&diff>0?'hi':''}">${diff==null?'–':(diff>0?'+':'')+fmtMin(diff)}</td></tr>`; }).join('');
   const reasons=SCH.reasons.filter(q=>r.reason[q.k]).map(q=>`<div><span>${esc(q.l)}:</span> ${esc(r.reason[q.k])}</div>`).join('')||(SCH.reasons.length?'<div><span>Delay reasons:</span> none recorded</div>':'');
-  const extra=window.PPE_CASE_EXTRA?window.PPE_CASE_EXTRA(r):'';
+  const extra=caseRules(r);
   return `<div class="enc"><div class="enc-h"><b>${esc(T().case.charAt(0).toUpperCase()+T().case.slice(1))} ${esc(r.id)}</b><span>Row ${r.row}</span><span>${esc(SCH.durLabel)} <b>${fmtMin(r.dur)}</b>${S.A.st.dur.med!=null?` (filtered median ${fmtMin(S.A.st.dur.med)})`:''}</span></div>
    <div class="facts">${SCH.attrs.map(a=>fact(a.l,a.type==='num'&&r.num[a.col]!=null?String(r.num[a.col]):r.attr[a.col])).join('')}${SCH.dueCol?fact('Due date',fmtD(r.due))+fact('Ended by due date',r.byDue==null?'–':r.byDue?'Yes':`No (${r.dueDelta} day${Math.abs(r.dueDelta)===1?'':'s'} after)`):''}${fact('Weekday / weekend',`${r.dayType} (${r.dowL}, by ${basisLabel()})`)}</div>
    <div class="chips" style="margin-bottom:6px">${chipsFor(r.vtrace)}</div><div class="seqline" style="margin-bottom:8px">Recorded sequence: ${esc(seq)}</div>
@@ -416,6 +415,154 @@ function encCard(r){ const TT=S.A.T, med=Object.fromEntries(TT.map(t=>[t.k,t.d.m
 $('#qBtn').onclick=()=>renderLookup($('#q').value);
 $('#q').onkeydown=e=>{ if(e.key==='Enter') renderLookup($('#q').value); };
 $('#lookupRes').onclick=e=>{ const b=e.target.closest('[data-show]'); if(!b) return; S.sel={type:'variant',key:b.dataset.show}; showTab('process'); renderMap(); renderVariants(); renderSel(); };
+
+/* =====================================================================
+   Rules: wizard step
+   ===================================================================== */
+const RT_L={within:'Second step within a time limit of the first',order:'Second step never before the first',present:'Step must be recorded',clock:'Step before a clock time'};
+S.newRule={type:'within',a:'',b:'',max:60,unit:'min',time:'12:00',when:'own',countMissing:false};
+function draftRuleResults(){
+  // evaluate the draft rules on the loaded file (switches the schema to the draft; restored on cancel)
+  try{ const c=normaliseConfig(S.draft); if(!validateConfig(c,S.table.header).ok) return null; const B=buildRecords(S.table,c); const rules=applyRules(B.recs,c);
+    return Object.fromEntries(ruleSummary(B.recs,rules,c).map(x=>[x.id,x])); }catch(e){ return null; } }
+function wRules(){
+  const c=S.draft, steps=c.stepOrder, L=k=>c.columns[k].label, nr=S.newRule, res=draftRuleResults();
+  if(!nr.a||!steps.includes(nr.a)) nr.a=c.happyFlow[0]||steps[0]; if(!nr.b||!steps.includes(nr.b)) nr.b=c.happyFlow[c.happyFlow.length-1]||steps[steps.length-1];
+  const opt=(sel)=>steps.map(k=>`<option value="${esc(k)}"${k===sel?' selected':''}>${esc(L(k))}</option>`).join('');
+  const rows=c.rules.map((r,i)=>{ const P=ruleProblems(r,c), x=res&&res[r.id];
+    return `<tr data-rid="${esc(r.id)}"><td>${i+1}</td><td class="l" style="min-width:280px"><input type="text" class="inp" style="width:100%" data-k="label" value="${esc(r.label||'')}" placeholder="${esc(ruleLabel({...r,label:''},c))}"></td><td class="l">${esc(RT_L[r.type]||r.type)}</td>
+      <td>${P.length?`<span class="hi">${esc(P.join(' '))}</span>`:x?`<b>${pctS(x.rate)}</b> met`:'–'}</td><td>${x&&!P.length?x.breach.toLocaleString():'–'}</td><td>${x&&!P.length?x.na.toLocaleString():'–'}</td><td><button class="btn ghost" data-del="1">Remove</button></td></tr>`; }).join('');
+  const clockWhen=`<select id="nrWhen" class="inp"><option value="own"${nr.when==='own'?' selected':''}>on the step's own day</option><option value="start0"${nr.when==='start0'?' selected':''}>on the day of ${esc(L(c.happyFlow[0]||steps[0]))}</option><option value="start1"${nr.when==='start1'?' selected':''}>the day after ${esc(L(c.happyFlow[0]||steps[0]))}</option><option value="start2"${nr.when==='start2'?' selected':''}>two days after ${esc(L(c.happyFlow[0]||steps[0]))}</option></select>`;
+  const form={
+    within:`<select id="nrB" class="inp">${opt(nr.b)}</select> within <input id="nrMax" class="num inp" type="number" min="1" value="${nr.max}"> <select id="nrUnit" class="inp"><option value="min"${nr.unit==='min'?' selected':''}>minutes</option><option value="h"${nr.unit==='h'?' selected':''}>hours</option><option value="d"${nr.unit==='d'?' selected':''}>days</option></select> of <select id="nrA" class="inp">${opt(nr.a)}</select> <label class="chk"><input type="checkbox" id="nrMiss"${nr.countMissing?' checked':''}> count a missing second step as a breach</label>`,
+    order:`<select id="nrB" class="inp">${opt(nr.b)}</select> is never recorded before <select id="nrA" class="inp">${opt(nr.a)}</select>`,
+    present:`<select id="nrA" class="inp">${opt(nr.a)}</select> is recorded for every ${esc(c.terms.case)}`,
+    clock:`<select id="nrA" class="inp">${opt(nr.a)}</select> happens before <input id="nrTime" class="inp" type="time" value="${esc(nr.time)}" style="width:110px"> ${clockWhen}`
+  }[nr.type];
+  return `<p class="lead">Rules turn expectations into measurements: a step within a time limit of another, a step that must never come before another, a step that must be recorded, a step before a clock time. Each ${esc(c.terms.case)} meets a rule, breaches it, or cannot be judged because a step is missing. The Rules and risk tab then looks at which ${esc(c.terms.cases)} miss each rule.</p>
+  ${c.rules.length?`<div class="tbl-scroll" style="max-height:none;margin-bottom:14px"><table class="t"><thead><tr><th>#</th><th class="l">Rule (edit the name if you like)</th><th class="l">Type</th><th>On this file</th><th>Breaches</th><th>Not evaluable</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="note">No rules yet. Rules are optional; without them the Rules and risk tab stays empty.</p>'}
+  <div class="flow-prev"><div class="lbl">Add a rule</div>
+    <div class="ctrl" style="margin:8px 0"><select id="nrType" class="inp">${RULE_TYPES.map(t=>`<option value="${t}"${t===nr.type?' selected':''}>${esc(RT_L[t])}</option>`).join('')}</select></div>
+    <div class="ctrl" style="margin-bottom:10px">${form}</div>
+    <button class="btn primary" id="nrAdd">Add rule</button></div>`;
+}
+function readNewRule(){ const nr=S.newRule, v=id=>{ const el=$('#'+id); return el?el.value:null; };
+  nr.type=v('nrType')||nr.type; if(v('nrA')!=null) nr.a=v('nrA'); if(v('nrB')!=null) nr.b=v('nrB');
+  if(v('nrMax')!=null) nr.max=+v('nrMax'); if(v('nrUnit')!=null) nr.unit=v('nrUnit'); if(v('nrTime')!=null) nr.time=v('nrTime'); if(v('nrWhen')!=null) nr.when=v('nrWhen');
+  const m=$('#nrMiss'); if(m) nr.countMissing=m.checked; }
+function ruleFromForm(){ const nr=S.newRule, r={type:nr.type,a:nr.a};
+  if(nr.type==='within'||nr.type==='order') r.b=nr.b;
+  if(nr.type==='within'){ r.max=Math.round(nr.max*(nr.unit==='h'?60:nr.unit==='d'?1440:1)); if(nr.countMissing) r.countMissing=true; }
+  if(nr.type==='clock'){ r.time=nr.time; r.anchor=nr.when==='own'?'own':'start'; r.dayOffset=nr.when==='own'?0:+nr.when.slice(5); }
+  return r; }
+WSTEPS.splice(2,0,{id:'rules',t:'Rules',render:wRules,bind(){
+  $('#wizBody').onchange=e=>{ const id=e.target.id;
+    if(e.target.dataset.k==='label'){ const rid=e.target.closest('tr').dataset.rid, r=S.draft.rules.find(x=>x.id===rid); if(r){ if(e.target.value.trim()) r.label=e.target.value.trim(); else delete r.label; } return; }
+    if(/^nr/.test(id)){ readNewRule(); if(id==='nrType') renderWizard(); } };
+  $('#wizBody').onclick=e=>{ if(e.target.id==='nrAdd'){ readNewRule(); const r=ruleFromForm(), P=ruleProblems(r,normaliseConfig(S.draft));
+      if(P.length){ toast(P.join(' '),true); return; }
+      let n=S.draft.rules.length+1; while(S.draft.rules.some(x=>x.id==='r'+n)) n++; r.id='r'+n; S.draft.rules.push(r); S.draft=normaliseConfig(S.draft); renderWizard(); return; }
+    if(e.target.dataset.del){ const rid=e.target.closest('tr').dataset.rid; S.draft.rules=S.draft.rules.filter(x=>x.id!==rid); renderWizard(); } };
+}});
+
+/* =====================================================================
+   Rules and risk tab
+   ===================================================================== */
+S.rules=[]; S.RS=[]; S.out=null; S.lateH=10; S.seg=new Set(); S.segOn=false; S.cDim=null; S.cMin=10; S.clinSel=null; S.RA=null;
+const ruleById=id=>S.rules.find(r=>r.id===id);
+const ruleText=r=>ruleLabel(r,S.cfg);
+function setupRulesUI(){
+  S.rules=applyRules(S.all,S.cfg); S.out=S.rules.length?S.rules[0].id:null; S.seg=new Set(); S.segOn=false; S.clinSel=null;
+  $('#outSel').innerHTML=S.rules.map(r=>`<option value="${esc(r.id)}">${esc(ruleText(r))}</option>`).join(''); if(S.out) $('#outSel').value=S.out;
+  $('#lateH').innerHTML=Array.from({length:24},(_,i)=>`<option value="${i}">${hhmm(i)}</option>`).join(''); $('#lateH').value=S.lateH;
+  const risk=SCH.attrs.filter(a=>a.risk), dims=(risk.length?risk:SCH.attrs);
+  $('#cDim').innerHTML=SCH.attrs.map(a=>`<option value="${esc(a.col)}">${esc(a.l)}</option>`).join(''); S.cDim=dims.length?dims[0].col:null; if(S.cDim) $('#cDim').value=S.cDim;
+}
+function riskOpts(){ return {minN:S.minN,lateH:S.lateH,wkLabel:wkLabel(),basisLabel:basisLabel(),clinFn:S.cDim?(r=>r.attr[S.cDim]):null,clinMin:S.cMin}; }
+function segFns(){ if(!S.segOn||!S.seg.size||!S.out) return []; const r=ruleById(S.out); if(!r) return [];
+  return riskFactors(S.all.filter(x=>x.rules[r.id]!=='na'),riskOpts()).filter(f=>S.seg.has(f.id)); }
+function renderRisk(){
+  S.RS=ruleSummary(S.view,S.rules,S.cfg);
+  $('#rulesChart').innerHTML=renderRulesSvg(S.RS).svg;
+  $('#rulesTbl').innerHTML=S.RS.length?`<table class="t"><thead><tr><th class="l">Rule</th><th>Evaluable</th><th>Met</th><th>Breaches</th><th>Not evaluable</th><th>Median value</th><th>P90</th></tr></thead><tbody>${S.RS.map((x,i)=>`<tr class="click${x.id===S.out?' on':''}" data-out="${esc(x.id)}"><td class="l">${x.id===S.out?'<b>':''}${esc(x.label)}${x.id===S.out?'</b> <span class="badge start">analysed below</span>':''}</td><td>${x.n.toLocaleString()}</td><td><b>${pctS(x.rate)}</b></td><td><button class="link" data-brf="u${i}">${x.breach.toLocaleString()}</button></td><td>${x.na.toLocaleString()}</td><td>${x.rule.type==='within'||x.rule.type==='order'?fmtMin(x.v.med):x.rule.type==='clock'?fmtMin(x.v.med)+' vs deadline':'–'}</td><td>${x.rule.type==='present'?'–':fmtMin(x.v.p90)}</td></tr>`).join('')}</tbody></table><p class="note">Median value: the time from the first to the second step for time and order rules, and the time before (−) or after the deadline for clock rules.</p>`:'';
+  $('#riskBody').hidden=!S.rules.length; if(!S.rules.length) return;
+  const rule=ruleById(S.out)||S.rules[0]; S.out=rule.id; $('#outSel').value=rule.id; const L=ruleText(rule);
+  const RA=S.RA=riskAnalyse(S.view,rule,riskOpts());
+  $('#tgtHead').innerHTML=`<span><b>${pctS(RA.met)}</b>met "${esc(L)}" (${RA.metN.toLocaleString()} of ${RA.n.toLocaleString()} evaluable)</span><span><b>${(RA.n-RA.metN).toLocaleString()}</b>breaches</span>`;
+  $('#facTitle').textContent='Factors and meeting the rule';
+  const orMap=new Map((RA.model.terms||[]).map(t=>[t.id,t]));
+  $('#factors').innerHTML=RA.F.length?`<table class="t"><thead><tr><th>Factor</th><th>Met, with factor</th><th>Met, without</th><th>Difference</th><th>95% CI (pp)</th><th>Adjusted odds ratio of a breach</th></tr></thead><tbody>${RA.table.map(f=>{ const o=orMap.get(f.id), cls=f.sig?(f.diff<0?'sig neg':'sig pos'):'';
+    return `<tr><td><label class="chk" style="color:var(--ink)"><input type="checkbox" data-fac="${esc(f.id)}"${S.seg.has(f.id)?' checked':''}> ${esc(f.l)}</label></td><td>${pctS(f.cy)} <span class="note">(${f.ny})</span></td><td>${pctS(f.cn)} <span class="note">(${f.nn})</span></td><td class="${cls}">${f.diff==null?'–':(f.diff>0?'+':'')+(f.diff*100).toFixed(1)+' pp'}${f.sig?(f.diff<0?' lower':' higher'):''}</td><td>${f.lo==null?'–':`${(f.lo*100).toFixed(1)} to ${(f.hi*100).toFixed(1)}`}</td><td class="${o&&(o.lo>1||o.hi<1)?(o.lo>1?'sig neg':'sig pos'):''}">${o?`${fOR(o.or)} (${fOR(o.lo)}–${fOR(o.hi)})`:'–'}</td></tr>`; }).join('')}</tbody></table>
+    <p class="note">"With" and "without" are the share meeting the rule; counts in brackets. Bold: the difference is beyond chance (95% CI excludes zero). The adjusted column holds the other factors constant; above 1 means a breach is more likely. Associations only, not causes. Factors with fewer than ${S.minN} ${esc(T().cases)} on either side are not listed (change Min. cases in Groups and days).</p>`:`<p class="empty-msg">No factor has at least ${S.minN} ${esc(T().cases)} with and without it.</p>`;
+  $$('#factors input[data-fac]').forEach(i=>i.onchange=()=>{ i.checked?S.seg.add(i.dataset.fac):S.seg.delete(i.dataset.fac); if(S.segOn){ S.sel=null; update(); } else renderSegBox(); });
+  renderSegBox();
+  $('#forest').innerHTML=renderForestSvg(RA.model,L).svg;
+  $('#forestNote').textContent=RA.model.err?((RA.model.sep&&RA.model.sep.length)?`Kept out because every ${T().case} with or without it fell on the same side: ${RA.model.sep.join('; ')}.`:''):`Logistic regression of a breach on ${RA.model.n.toLocaleString()} ${T().cases} with every factor known (${RA.model.events.toLocaleString()} breaches). Marked higher or lower: the interval excludes 1.${RA.model.noVar&&RA.model.noVar.length?' Not in the model because they do not vary here: '+RA.model.noVar.join('; ')+'.':''}${RA.model.sep&&RA.model.sep.length?' Not in the model because every case with or without the factor fell on the same side (infinite odds ratio; see the table): '+RA.model.sep.join('; ')+'.':''}${RA.model.unstable?' Some estimates are unstable because a factor almost perfectly predicts the outcome; read with care.':''}`;
+  $('#openCard').hidden=!RA.open;
+  if(RA.open){ $('#open').innerHTML=renderOpenSvg(RA.open,rule).svg;
+    const Ls=RA.open.last.slice(0,3).map(x=>`${x.k==='none'?'none':EVL(x.k)} ${pctS(x.p)}`).join(', ');
+    $('#openNote').textContent=RA.open.n?`For each breach: was each step completed after the deadline (still open at it), or not recorded before the rule's step? Last step before it: ${Ls}.`:''; }
+  renderClin(); }
+function renderSegBox(){ if(!S.RA) return; const ok=S.RA.ok;
+  if(!S.seg.size){ $('#segBox').innerHTML=`<span>Tick one or more factors to compare the ${esc(T().cases)} that have all of them with everyone else, and to apply that segment as a filter across every tab and the export.</span>`; return; }
+  const F=S.RA.F.filter(f=>S.seg.has(f.id)), base=(S.segOn?applyFilters(true):S.view).filter(r=>ok(r)!=null), a=base.filter(r=>F.every(f=>f.fn(r)===true)), b=base.filter(r=>!F.every(f=>f.fn(r)===true));
+  const ra=a.length?a.filter(ok).length/a.length:null, rb=b.length?b.filter(ok).length/b.length:null;
+  $('#segBox').innerHTML=`<span>Segment: <strong>${esc(F.map(f=>f.l).join(' and '))}</strong></span><span><b>${pctS(ra)}</b> met (${a.length})</span><span><b>${pctS(rb)}</b> everyone else (${b.length})</span>`+
+    (S.segOn?'<button class="btn ghost" id="segApply" data-on="1">Remove filter</button>':'<button class="btn primary" id="segApply">Apply as filter</button>');
+  $('#segApply').onclick=e=>{ S.segOn=!e.target.dataset.on; S.sel=null; update(); if(S.segOn) toast('Segment applied to every tab and the export'); }; }
+function renderClin(){ const V=S.RA.clin, a=SCH.attrs.find(x=>x.col===S.cDim), rule=ruleById(S.out), L=ruleText(rule);
+  $('#variation').innerHTML=renderVariationSvg(V,k=>k,S.clinSel,L).svg;
+  const flagged=V.pts.filter(p=>p.flag==='bad'||p.flag==='warn'); let x='';
+  const p=V.pts.find(q=>q.key===S.clinSel);
+  if(p&&a){ const lo95=Math.max(0,V.p0-1.96*Math.sqrt(V.p0*(1-V.p0)/p.n)), lo998=Math.max(0,V.p0-3.09*Math.sqrt(V.p0*(1-V.p0)/p.n));
+    const verdict=p.flag==='bad'?'Below the 99.8% limit: very unlikely to be chance.':p.flag==='warn'?'Below the 95% limit: worth reviewing.':p.flag==='good'?'Above the upper limit: possible practice to learn from.':'Within the limits: not distinguishable from the overall rate.';
+    x+=`<div class="clin-card"><div class="lbl">${esc(a.l)}</div><strong>${esc(p.key)}</strong><b class="big">${pctS(p.p)}</b>${p.c} of ${p.n} met the rule<br><span class="note">Overall ${pctS(V.p0)} · lower limits at this volume ${pctS(lo95)} (95%), ${pctS(lo998)} (99.8%)</span><p style="margin:8px 0">${esc(verdict)}</p><div class="ctrl"><button class="btn primary" id="clinFilter">Filter to this group</button></div></div>`; }
+  x+=`<h3 style="margin-top:0">Below the lower limits (${flagged.length})</h3>`+(flagged.length?`<table class="t"><thead><tr><th>${esc(a?a.l:'Group')}</th><th>n</th><th>Met</th></tr></thead><tbody>${flagged.map(f=>`<tr><td><button class="link" data-ck="${esc(f.key)}">${esc(f.key)}</button></td><td>${f.n}</td><td class="hi">${pctS(f.p)} ${f.flag==='bad'?'(99.8%)':'(95%)'}</td></tr>`).join('')}</tbody></table>`:'<p class="empty-msg">None: differences between groups are within what volume alone would explain.</p>');
+  $('#clinInfo').innerHTML=x;
+  const cf=$('#clinFilter'); if(cf) cf.onclick=()=>{ const i=SCH.attrs.findIndex(q=>q.col===S.cDim), v=S.clinSel; S.clinSel=null; addFilter('a'+i,v); toast('Filter added'); }; }
+$('#variation').onclick=e=>{ const g=e.target.closest('[data-clin]'); if(!g) return; S.clinSel=S.clinSel===g.dataset.clin?null:g.dataset.clin; renderClin(); };
+$('#clinInfo').addEventListener('click',e=>{ const b=e.target.closest('[data-ck]'); if(!b) return; S.clinSel=b.dataset.ck; renderClin(); });
+$('#cDim').onchange=e=>{ S.cDim=e.target.value; S.clinSel=null; renderRisk(); };
+$('#cMin').onchange=e=>{ S.cMin=Math.max(1,+e.target.value||1); renderRisk(); };
+$('#outSel').onchange=e=>{ S.out=e.target.value; S.seg=new Set(); const wasOn=S.segOn; S.segOn=false; S.clinSel=null; if(wasOn) update(); else renderRisk(); };
+$('#lateH').onchange=e=>{ S.lateH=+e.target.value; if(S.segOn) update(); else renderRisk(); };
+$('#rulesTbl').onclick=e=>{ const b=e.target.closest('[data-brf]'); if(b){ addFilter(b.dataset.brf,'Breach'); return; }
+  const tr=e.target.closest('[data-out]'); if(tr&&tr.dataset.out!==S.out){ $('#outSel').value=tr.dataset.out; $('#outSel').dispatchEvent(new Event('change')); } };
+const allRulesRate=R=>{ const E=R.filter(r=>r.allOk!=null); return E.length?E.filter(r=>r.allOk).length/E.length:null; };
+function caseRules(r){ if(!S.rules.length) return '';
+  return `<div class="facts" style="margin-top:6px">${S.rules.map(x=>{ const s=r.rules[x.id], v=r.ruleV[x.id];
+    return `<div><span>${esc(ruleText(x))}:</span> ${s==='met'?'met':s==='breach'?'<b class="hi" style="color:var(--alert)">breach</b>':'not evaluable'}${v!=null&&x.type!=='present'?` (${v>=0&&x.type==='clock'?'+':''}${fmtMin(v)}${x.type==='clock'?' vs deadline':''})`:''}</div>`; }).join('')}</div>`; }
+async function deckExtra(ctx){
+  if(!S.rules.length) return;
+  const RS=S.RS, rule=ruleById(S.out), RA=S.RA, L=ruleText(rule), Tn=T();
+  const img={rules:await raster(renderRulesSvg(RS)),forest:await raster(renderForestSvg(RA.model,L)),open:RA.open?await raster(renderOpenSvg(RA.open,rule)):null,variation:await raster(renderVariationSvg(RA.clin,k=>k,null,L))};
+  const cdl=(SCH.attrs.find(a=>a.col===S.cDim)||{l:'Group'}).l, rate=allRulesRate(S.view);
+  ctx.kpiExtra=[[pctS(rate),'Met every rule',`${S.rules.length} rule${S.rules.length===1?'':'s'}`]];
+  ctx.groupCols=[{l:'All rules met',f:x=>pctS(allRulesRate(x.recs))}];
+  ctx.extraSlides=(D,frame,pic,k)=>{ let s;
+    s=D.slide(); frame(s,'Rules','Share of evaluable '+Tn.cases+' meeting each rule',k++);
+    pic(s,img.rules,{x:0.5,y:1.5,w:7.6,h:4.8});
+    D.table(s,{x:8.4,y:1.5,colW:[2.4,0.65,0.7,0.75],rowH:0.36,sz:9,rows:[['Rule','n','Met','Breach']].concat(RS.map(x=>[{t:x.label.length>40?x.label.slice(0,39)+'…':x.label,algn:'l'},x.n,pctS(x.rate),x.breach]))});
+    s=D.slide(); frame(s,`Missing "${L}": what goes with it`,`${pctS(RA.met)} of evaluable ${Tn.cases} met it (${RA.metN.toLocaleString()} of ${RA.n.toLocaleString()}). Rates compare ${Tn.cases} with and without each factor.`,k++);
+    const om=new Map((RA.model.terms||[]).map(t=>[t.id,t]));
+    const fr=[['Factor','Met with','n','Met without','n','Diff (pp)','Adjusted OR of a breach']].concat(RA.table.slice(0,13).map(f=>{ const o=om.get(f.id);
+      return [{t:f.l,algn:'l'},pctS(f.cy),f.ny,pctS(f.cn),f.nn,{t:f.diff==null?'–':((f.diff>0?'+':'')+(f.diff*100).toFixed(1))+(f.sig?(f.diff<0?' lower':' higher'):''),b:f.sig},
+        {t:o?`${fOR(o.or)} (${fOR(o.lo)}–${fOR(o.hi)})`:'–',b:!!(o&&(o.lo>1||o.hi<1))}]; }));
+    D.table(s,{x:0.5,y:1.5,colW:[4.6,0.85,0.6,0.95,0.6,1.2,1.9],rowH:0.33,rows:fr,sz:9});
+    D.text(s,{x:0.5,y:6.35,w:12.3,h:0.6,paras:[{t:`Bold: 95% CI excludes zero (difference) or one (odds ratio). Adjusted odds ratios come from a logistic regression with all factors together${RA.model.n?` on ${RA.model.n.toLocaleString()} ${Tn.cases}`:''}; above 1 = a breach is more likely. Associations only.`,sz:9.5,color:PAL.ink2}]});
+    s=D.slide(); frame(s,`Adjusted comparison: breaching "${L}"`,'Odds ratios with 95% confidence intervals; marked higher or lower where the interval excludes 1',k++);
+    pic(s,img.forest,{x:0.5,y:1.5,w:12.3,h:4.9});
+    if(img.open){ s=D.slide(); frame(s,`Still open at the deadline of "${L}"`,`${RA.open.n.toLocaleString()} breaches. Dark: step completed after the deadline, i.e. still pending at it.`,k++);
+      pic(s,img.open,{x:0.5,y:1.5,w:8.3,h:5.3});
+      D.table(s,{x:9.0,y:1.5,colW:[2.9,0.9],rowH:0.34,sz:9.5,rows:[['Last step before it','%']].concat(RA.open.last.slice(0,8).map(x=>[{t:x.k==='none'?'None':EVL(x.k),algn:'l'},pctS(x.p)]))}); }
+    s=D.slide(); frame(s,`Variation by ${cdl.toLowerCase()}: meeting "${L}"`,`Funnel plot against volume; groups with fewer than ${S.cMin} ${Tn.cases} are hidden`,k++);
+    pic(s,img.variation,{x:0.5,y:1.5,w:7.6,h:4.4});
+    const out=RA.clin.pts.filter(p=>p.flag==='bad'||p.flag==='warn').slice(0,10);
+    if(out.length) D.table(s,{x:8.4,y:1.5,colW:[2.3,0.6,0.8,0.75],rowH:0.36,sz:9.5,rows:[[cdl,'n','Met','Limit']].concat(out.map(p=>[{t:p.key,algn:'l'},p.n,{t:pctS(p.p),b:p.flag==='bad'},p.flag==='bad'?'99.8%':'95%']))});
+    else D.text(s,{x:8.4,y:1.5,w:4.4,h:1,paras:[{t:'No group falls below the 95% lower limit: observed differences are within what volume alone would explain.',sz:12,color:PAL.ink}]});
+    D.text(s,{x:8.4,y:5.9,w:4.4,h:0.8,paras:[{t:'Being outside a limit is a prompt to review, not a finding of poor practice.',sz:10,color:PAL.ink2}]});
+    return k; };
+}
 
 /* ---------- export ---------- */
 function raster(r,scale){ scale=scale||2; return new Promise((res,rej)=>{ const img=new Image();
@@ -430,7 +577,7 @@ async function exportDeck(){ const b=$('#exportBtn'); if(!S.view.length){ toast(
       last:await raster(renderLastSvg(A.L)), hour:await raster(renderHourSvg(S.view)), heat:await raster(renderHeatSvg(heatData(S.view,S.hm.metric,S.hm.basis,S.refKey),hmBasisLabel())) };
     const d=new Date(), gen=`${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
     const ctx={scope:scopeText(),period:periodText(),generated:gen,refLabel:refLabel(),post:S.opt.post,vmode:S.opt.vmode,basisLabel:basisLabel(),weekendLabel:wkLabel(),minN:S.minN,heatLabel:heatLabel(),recText:$('#recs').value,dq:dqList().slice(1)};
-    if(window.PPE_DECK_EXTRA) await window.PPE_DECK_EXTRA(ctx,S,raster);
+    await deckExtra(ctx);
     const bytes=buildDeck(A,ctx,img);
     download(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}),`${slug(SCH.name)}_review_${stamp()}.pptx`);
     toast('Slides exported');
@@ -456,7 +603,7 @@ $('#postChk').onchange=e=>{ S.opt.post=e.target.checked; S.sel=null; recompute()
 $('#refSel').onchange=e=>{ S.refMode=e.target.value; update(); };
 $$('#vmodeSeg button').forEach(b=>b.onclick=()=>{ S.opt.vmode=b.dataset.v; $$('#vmodeSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; S.refCustom=null; if(S.refMode==='custom'){ S.refMode='happy'; $('#refSel').value='happy'; } $('#refSel option[value=custom]').disabled=true; recompute(); });
 $$('#combSeg button').forEach(b=>b.onclick=()=>{ S.combine=b.dataset.c; $$('#combSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; update(); });
-$('#clearF').onclick=()=>{ S.f={}; if(window.PPE_CLEAR_SEGMENT) window.PPE_CLEAR_SEGMENT(); S.sel=null; update(); };
+$('#clearF').onclick=()=>{ S.f={}; S.segOn=false; S.sel=null; update(); };
 $('#moreBtn').onclick=()=>{ const m=$('#more'); m.hidden=!m.hidden; $('#moreBtn').textContent=m.hidden?'More filters':'Fewer filters'; };
 $('#setBtn').onclick=()=>{ $('#setPop').hidden=!$('#setPop').hidden; };
 function syncSettingsUI(){ $('#wkDays').innerHTML=DAY_ORDER.map(d=>`<label><input type="checkbox" value="${d}"${S.opt.weekend.includes(d)?' checked':''}>${DAYS[d]}</label>`).join('');
@@ -467,6 +614,4 @@ $$('#basisSeg button').forEach(b=>b.onclick=()=>{ S.opt.basis=b.dataset.b; if(S.
 // #sample opens the synthetic sample with its saved setup already applied (for demos)
 if(location.hash==='#sample'){ $('#sampleBtn').click(); applySetup(); }
 
-// hooks for optional modules (rules and risk) loaded after this file
-window.PPE={S,update,toast,esc,addFilter,showTab,applyFilters,basisLabel,wkLabel,csv,stamp,slug,exportCfg};
 })();

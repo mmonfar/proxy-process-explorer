@@ -38,9 +38,31 @@ The setup wizard writes one JSON document. You can export it from the page, edit
 | `columns.*.risk` | Attributes only: `true` to use the variable as a candidate risk factor. |
 | `stepOrder` | All step columns in display order. |
 | `happyFlow` | The ordered subset of steps that make up the expected path. The first one starts the clock; the last one ends the case, and rows without it are left out. At least two. |
-| `rules` | Timing and ordering rules. See the rules section when present. |
+| `rules` | Timing and ordering rules. See below. |
 | `settings.weekend` | Weekend days, `0` = Sunday … `6` = Saturday. |
 | `settings.basis` | Whether day and hour come from the `start` or the `end` step. |
+
+## Rules
+
+Every rule has an `id`, a `type`, step columns in `a` (and `b`), and an optional `label`. Without a label, one is written from the rule.
+
+| Type | Fields | Met when | Not evaluable when |
+|---|---|---|---|
+| `within` | `a`, `b`, `max` (minutes), optional `countMissing: true` | `b` is recorded no later than `max` minutes after `a` | `a` is missing; or `b` is missing and `countMissing` is not set (with it, a missing `b` is a breach) |
+| `order` | `a`, `b` | `b` is not recorded before `a` (equal times meet) | either step is missing |
+| `present` | `a` | `a` is recorded | never |
+| `clock` | `a`, `time` (`HH:MM`), `anchor` (`own` or `start`), `dayOffset` | `a` happens before `time` on its own day (`own`), or before `time` on the start step's day plus `dayOffset` days (`start`) | `a` is missing, or with `start` the start step is missing |
+
+```json
+"rules": [
+  { "id": "r1", "type": "within", "a": "discharge_order_at", "b": "discharged_at", "max": 360 },
+  { "id": "r2", "type": "clock",  "a": "discharged_at", "time": "14:00", "anchor": "own", "label": "Discharged before 14:00" },
+  { "id": "r3", "type": "order",  "a": "discharge_order_at", "b": "med_reconciliation_at" },
+  { "id": "r6", "type": "clock",  "a": "discharged_at", "time": "10:00", "anchor": "start", "dayOffset": 1 }
+]
+```
+
+A rule that refers to a column that is not a step, or that is otherwise malformed, is ignored with a warning in the setup.
 
 ## Importing onto a different file
 

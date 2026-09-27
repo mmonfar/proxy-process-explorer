@@ -904,9 +904,15 @@ function renderVariationSvg(V,labelFn,selKey,outcome){ const W=780,H=380,x0=56,x
   s+=`<path d="${lim(3.09,-1)}" fill="none" stroke="${PAL.ink}" stroke-dasharray="2 3"/><path d="${lim(1.96,-1)}" fill="none" stroke="${PAL.ink3}" stroke-dasharray="5 5"/><path d="${lim(1.96,1)}" fill="none" stroke="${PAL.ink3}" stroke-dasharray="5 5"/><path d="${lim(3.09,1)}" fill="none" stroke="${PAL.ink}" stroke-dasharray="2 3"/>`;
   s+=`<line x1="${x0}" x2="${x1}" y1="${Y(p0)}" y2="${Y(p0)}" stroke="${PAL.teal}" stroke-width="1.5"/><text x="${x1}" y="${Y(p0)-5}" text-anchor="end" font-size="10.5" fill="${PAL.teal}" font-weight="600">Overall ${pctS(p0)} met</text>`;
   const C={bad:SEM.alert,warn:SEM.skip,good:PAL.teal,'':PAL.ink3};
+  const labs=[];
   P.forEach(p=>{ const on=selKey===p.key;
     s+=`<g data-clin="${xmlEsc(p.key)}" style="cursor:pointer"><title>${xmlEsc(labelFn(p.key))}: ${pctS(p.p)} of ${p.n} met ${xmlEsc(outcome)}</title><rect x="${(X(p.n)-(on?7:5)).toFixed(1)}" y="${(Y(p.p)-(on?7:5)).toFixed(1)}" width="${on?14:10}" height="${on?14:10}" fill="${C[p.flag]}" fill-opacity="${p.flag?0.95:0.7}" stroke="${on?PAL.ink:'#FFFFFF'}" stroke-width="${on?2.5:1}"/></g>`;
-    if(p.flag==='bad'||p.flag==='warn'||on) s+=`<text x="${(X(p.n)+9).toFixed(1)}" y="${(Y(p.p)+4).toFixed(1)}" font-size="10.5" fill="${PAL.ink}" font-weight="700" pointer-events="none">${xmlEsc(labelFn(p.key))}${p.flag==='bad'?' (below 99.8%)':p.flag==='warn'?' (below 95%)':''}</text>`; });
+    if(p.flag==='bad'||p.flag==='warn'||on){ const t=labelFn(p.key)+(p.flag==='bad'?' (below 99.8%)':p.flag==='warn'?' (below 95%)':''); labs.push({x:X(p.n)+9,y:Y(p.p)+4,px:X(p.n),py:Y(p.p),t,w:t.length*6}); } });
+  // keep labels apart: push a label down while it overlaps one already placed
+  labs.sort((a,b)=>a.y-b.y); const placed=[];
+  for(const l of labs){ let moved=true; while(moved){ moved=false; for(const q of placed) if(Math.abs(l.y-q.y)<13&&l.x<q.x+q.w&&q.x<l.x+l.w){ l.y=q.y+13; moved=true; } } placed.push(l);
+    if(Math.abs(l.y-4-l.py)>6) s+=`<line x1="${l.px.toFixed(1)}" y1="${l.py.toFixed(1)}" x2="${(l.x-2).toFixed(1)}" y2="${(l.y-4).toFixed(1)}" stroke="${PAL.ink3}" stroke-width="0.8"/>`;
+    s+=`<text x="${l.x.toFixed(1)}" y="${l.y.toFixed(1)}" font-size="10.5" fill="${PAL.ink}" font-weight="700" pointer-events="none">${xmlEsc(l.t)}</text>`; }
   s+=`<text x="${(x0+x1)/2}" y="${H-10}" text-anchor="middle" font-size="10" letter-spacing="1" fill="${PAL.ink2}">${xmlEsc(SCH.terms.cases.toUpperCase())} (VOLUME)</text><text x="${x0}" y="${H-10}" font-size="10.5" fill="${PAL.ink2}">0</text><text x="${x1}" y="${H-10}" text-anchor="end" font-size="10.5" fill="${PAL.ink2}">${Math.round(maxN)}</text>`;
   s+=`<g font-size="10.5" fill="${PAL.ink2}"><line x1="${x0+8}" x2="${x0+30}" y1="${y1+22}" y2="${y1+22}" stroke="${PAL.ink3}" stroke-dasharray="5 5"/><text x="${x0+34}" y="${y1+26}">95% limits</text><line x1="${x0+110}" x2="${x0+132}" y1="${y1+22}" y2="${y1+22}" stroke="${PAL.ink}" stroke-dasharray="2 3"/><text x="${x0+136}" y="${y1+26}">99.8% limits</text></g>`;
   return {svg:s+'</svg>',w:W,h:H}; }

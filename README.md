@@ -94,7 +94,7 @@ npm run samples   # regenerate samples/ from the seeded generator
 npm test          # node:test suite
 ```
 
-`src/core.js` holds all parsing and analysis as pure functions, and the tests drive it from the setup file, not through the page. `tests/traces.test.mjs` scans every file in the repository, the sample workbook and an exported deck for a list of terms that must never appear. The terms are stored only as hashes.
+`src/core.js` holds all parsing and analysis as pure functions, and the tests drive it from the setup file, not through the page. `tests/traces.test.mjs` is a privacy check on the sample files: it confirms that the repository, the sample workbook and an exported deck contain no personal or identifying details.
 
 ## Layout
 

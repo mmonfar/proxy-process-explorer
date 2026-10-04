@@ -117,6 +117,12 @@ tests/              node:test suites
 
 This is an analysis prototype, **not a medical device**. It is not intended for diagnosis, treatment or any decision about an individual patient. It describes patterns in the data you load; check its results against the source before acting on them, and use it only with data you are allowed to process.
 
+Built with AI assistance (Claude); all code and claims reviewed by the author.
+
+Provided as is, without warranty; not for clinical decision-making. See LICENSE.
+
+Synthetic or de-identified data only. Not for clinical use.
+
 ## Licence
 
 Code is licensed under **AGPL-3.0-or-later** (see [`LICENSE`](LICENSE)); a commercial licence is available on request from the author via [LinkedIn](https://www.linkedin.com/in/martin-monteagudo-farina/). Non-code content is under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Details in [`LICENSING.md`](LICENSING.md).

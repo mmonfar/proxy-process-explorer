@@ -19,6 +19,7 @@
     </div>
   </div>
   <div class="actions">
+    <span class="offline" title="The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.">Offline · nothing uploaded</span>
     <span id="fileName" class="file"></span>
     <button id="setupBtn" class="btn" hidden>Setup</button>
     <label class="btn" for="file" tabindex="0" id="loadLbl">Load file</label>
@@ -30,24 +31,28 @@
 <div class="privacy">Runs only in this browser. The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.</div>
 <main>
   <section id="empty" class="empty">
-    <div class="lbl">Prototype · synthetic sample included</div>
+    <div class="lbl">Synthetic sample included</div>
     <h2>See how cases move through a process</h2>
-    <p>Load a spreadsheet with one row per case and one timestamp column per step. A short setup asks which column is which, what the happy flow looks like, which rules apply and which variables matter. Everything else is calculated from the timestamps.</p>
+    <p>Load a spreadsheet with one row per case and one timestamp column per step. Everything else is calculated from the timestamps.</p>
     <div class="row">
-      <label class="btn primary" for="file">Choose a .csv or .xlsx file</label>
-      <button class="btn" id="sampleBtn">Try the synthetic sample</button>
+      <button class="btn primary big" id="sampleBtn">Try the synthetic sample</button>
+    </div>
+    <div class="row2">
+      <label class="btn" for="file">Choose a .csv or .xlsx file</label>
       <label class="btn ghost" for="cfgFile" tabindex="0" id="cfgLbl">Import a saved setup (.json)</label>
     </div>
     <div id="cfgNote"></div>
     <div id="loadErr"><div class="err" id="scriptBlocked">This viewer is blocking the page's scripts, so files can't be loaded here. Download the .html file and open it directly in a current browser.</div></div>
-    <div class="shape">
-      <div class="lbl">Expected shape</div>
+    <details class="shape">
+      <summary>What should my file look like?</summary>
+
       <table>
         <tr><th>case_id</th><th>unit</th><th>step_a_at</th><th>step_b_at</th><th>…</th><th>finished_at</th><th>delay_reason</th></tr>
         <tr><td>C-001</td><td>Unit A</td><td>2026-03-02 09:10</td><td>2026-03-02 10:05</td><td>…</td><td>2026-03-02 13:40</td><td>Awaiting transport</td></tr>
       </table>
       Column names are free. Dates can be spreadsheet dates or text such as 2026-03-02 09:10, 02/03/2026 9:10 or 2 Mar 2026 09:10. The header row can sit below report titles. Columns that look like personal data (names, dates of birth, record numbers, contact details) are ignored unless you choose otherwise.
-    </div>
+    
+    </details>
   </section>
 
   <section id="wiz" class="wiz" hidden>
@@ -64,13 +69,15 @@
   </section>
 
   <section id="app" hidden>
+    <div class="ctx" id="ctx">
+    <div class="ctxrow"><button class="btn ghost" id="fToggle" aria-expanded="false">Filters</button><div id="summary" class="summary mob"></div></div>
     <div class="filters" id="filters">
       <div id="fPrimary" style="display:contents"></div>
       <div id="more" hidden></div>
       <div class="fbar-r">
         <button class="btn ghost" id="moreBtn">More filters</button>
         <div class="seg" id="combSeg" title="How selections in different filters combine. Values within one filter always combine with OR."><button data-c="and" class="on">Match all</button><button data-c="or">Match any</button></div>
-        <button class="btn ghost" id="clearF">Clear filters</button>
+        
         <div class="fl"><button class="btn ghost" id="setBtn">Settings</button>
           <div class="pop set-pop" id="setPop" hidden style="left:auto;right:0">
             <h4>Weekend days</h4><div class="days" id="wkDays"></div>
@@ -80,9 +87,8 @@
           </div></div>
       </div>
     </div>
-    <div id="fchips" class="chipsrow"></div>
-    <div id="warn" class="warn" hidden></div>
-    <div class="kpis" id="kpis"></div>
+    
+    <div class="status"><div id="summary2" class="summary"></div><div id="fchips" class="chipsrow"></div><button class="btn ghost" id="clearF" hidden>Clear all</button></div>
     <nav class="tabs" role="tablist" id="tabs">
       <button class="on" data-tab="process">Process map</button>
       <button data-tab="timing">Timing and delays</button>
@@ -92,6 +98,9 @@
       <button data-tab="lookup">Case lookup</button>
       <button data-tab="findings">Findings</button>
     </nav>
+    </div>
+    <div id="warn" class="warn" hidden></div>
+    <div class="kpis" id="kpis"></div>
 
     <div id="tab-process" class="tab">
       <div class="grid-proc">
@@ -113,9 +122,9 @@
             <div id="mapWrap" class="map-wrap"></div>
             <div id="refTxt" class="note" style="margin:8px 0 0"></div>
             <div class="legend"><span><i style="background:var(--ink)"></i>Reference flow</span><span><i style="background:var(--skip)"></i>Skips ahead of the reference order (right)</span><span><i style="background:var(--alert)"></i>Recorded earlier than the reference order (left)</span><span><i style="background:var(--ink2)"></i>Other direct steps</span><span id="slowLeg" hidden><i style="background:var(--alertWash);height:10px;border:1px solid var(--alert)"></i>Three slowest transitions</span></div>
-            <p class="note">Each case becomes a sequence by sorting its step timestamps; an arrow means one step was directly followed by the next. Times on arrows are the gap between those two timestamps. Click a step, an arrow or a sequence to list its cases. Hover for details.</p>
+            <details class="how"><summary>How to read this map</summary><p class="note">Each case becomes a sequence by sorting its step timestamps; an arrow means one step was directly followed by the next. Times on arrows are the gap between those two timestamps. Click a step, an arrow or a sequence to list its cases. Hover for details.</p></details>
           </div>
-          <div class="card" id="selHint"><h2 style="margin:0 0 4px">Cases on a path</h2><p class="note" style="margin:0">Select a sequence on the right, or a step or arrow on the map, to list the cases behind it and open any of them in the lookup.</p></div>
+          <div class="card" id="selHint"><h2 style="margin:0 0 4px">Cases on a path</h2><p class="note" style="margin:0">Click a step, an arrow or a sequence to list its cases.</p></div>
           <div class="card" id="selCard" hidden>
             <div class="card-h"><h2 id="selTitle"></h2><div class="ctrl"><button class="btn ghost" id="selRef" hidden>Use as reference flow</button><button class="btn ghost" id="selCsv">Download list (.csv)</button><button class="btn ghost" id="selClear">Clear selection</button></div></div>
             <div id="selBody"></div>
@@ -145,7 +154,7 @@
 
     <div id="tab-risk" class="tab" hidden>
       <div class="card">
-        <div class="card-h"><h2>Rules</h2><span class="note" style="margin:0">Click a rule to analyse it below. Click a breach count to filter every tab to those cases. Edit rules in Setup.</span></div>
+        <div class="card-h"><h2>Rules</h2><span class="note" style="margin:0">Select a rule to analyse it below</span></div>
         <div id="rulesChart" class="chart-scroll"></div>
         <div id="rulesTbl" class="tbl-scroll" style="margin-top:10px"></div>
       </div>
@@ -154,7 +163,7 @@
           <div class="card-h"><h2 id="facTitle">Factors</h2>
             <div class="ctrl"><label class="rng">Outcome <select id="outSel"></select></label><label class="rng">Late start: on the end day at or after <select id="lateH"></select></label></div></div>
           <div class="tgt-head" id="tgtHead"></div>
-          <p class="note" style="margin:6px 0 10px">Tick factors to build a segment you can apply as a filter. Values of a variable are each compared with all other values of that variable.</p>
+          <p class="note" style="margin:6px 0 10px">Tick factors to filter to them.</p>
           <div id="factors" class="tbl-scroll"></div>
           <div id="segBox" class="seg-box"></div>
         </div>
@@ -177,7 +186,7 @@
         <div class="card-h"><h2>Breakdown</h2>
           <div class="ctrl"><label class="rng">Group by <select id="dim"></select></label><label class="rng">Min. cases <input id="minN" type="number" value="10" min="1" class="num"></label><button class="btn ghost" id="bdCsv">Download table (.csv)</button></div>
         </div>
-        <p class="note" style="margin:0 0 8px">Click a column heading to sort, or a row to add it to the filters. Red: median more than 25% above the filtered median, for groups at or above the minimum size.</p>
+        <p class="note" style="margin:0 0 8px">Click a row to filter to that group. Red: median more than 25% above the rest.</p>
         <div id="breakdown" class="tbl-scroll"></div>
       </div>
     </div>
@@ -198,10 +207,10 @@
       <div class="card">
         <div class="card-h"><h2>Find a case and compare it with the reference flow</h2></div>
         <div class="lookup-bar">
-          <input type="text" id="q" placeholder="Case ID" autocomplete="off">
+          <input type="text" id="q" placeholder="Type a case ID, then press Find" autocomplete="off">
           <button class="btn primary" id="qBtn">Find</button>
         </div>
-        <div id="lookupRes"><p class="empty-msg">Search covers the whole loaded file, not only the filtered view. Medians used for comparison come from the filtered cases.</p></div>
+        <div id="lookupRes"><p class="empty-msg">Searches the whole file, not only the filtered cases.</p></div>
       </div>
     </div>
 

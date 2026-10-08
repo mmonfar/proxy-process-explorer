@@ -62,7 +62,7 @@ async function readCfgFile(file){
 $('#cfgFile').onchange=e=>readCfgFile(e.target.files[0]);
 function exportCfg(c){ download(new Blob([JSON.stringify(c,null,2)],{type:'application/json'}),`${slug(c.name)}_setup.json`); }
 $('#cfgExport').onclick=()=>exportCfg(normaliseConfig(S.draft));
-function showEmpty(){ $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#setupBtn').hidden=true; }
+function showEmpty(){ document.body.classList.remove('has-app'); $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#setupBtn').hidden=true; }
 
 /* =====================================================================
    Setup wizard
@@ -167,7 +167,7 @@ function applySetup(){
     S.all=B.recs; S.meta=B.meta; S.f={}; S.sel=null; S.refMode='happy'; S.refCustom=null; S.lastQ='';
     S.opt.weekend=S.cfg.settings.weekend||[6,0]; S.opt.basis=S.cfg.settings.basis==='end'?'end':'start';
     $('#refSel').value='happy'; $('#refSel option[value=custom]').disabled=true;
-    $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
+    document.body.classList.add('has-app'); $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
     $('#subTitle').textContent=`${S.cfg.name} · ${S.cfg.happyFlow.length} happy-flow steps · ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`;
     setupRulesUI(); syncSettingsUI(); buildFilters(); recompute(); showTab('process'); toast(`Loaded ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`);
   }catch(e){ console.error(e); toast(e.message||String(e),true); }
@@ -220,11 +220,19 @@ function applyFilters(noSeg){ const act=activeF(), SF=noSeg?[]:extraFilterFns();
 function scopeText(){ const act=activeF().map(([k,l])=>`${l}: ${[...S.f[k]].map(v=>fmtV(k,v)).join(' or ')}`);
   const sf=extraFilterFns(); if(sf.length) act.push('Segment: '+sf.map(f=>f.l).join(' and '));
   return act.length?act.join(S.combine==='and'?'; and ':'; or '):`All ${T().cases} in the file`; }
+function slowText(){ const A=S.A; const s=[...A.model.edges.values()].filter(e=>A.slow.has(e.key)&&e.st&&e.st.n).sort((a,b)=>b.st.med-a.st.med)[0]; return s?`${EVL(s.a)} → ${EVL(s.b)} (${fmtMin(s.st.med)})`:''; }
+function ctxInfo(){ const act=activeF(), sf=extraFilterFns();
+  return contextSummary({n:S.view.length,total:S.all.length,cases:T().cases,conf:S.A.st.conf,confText:pctS(S.A.st.conf),
+    followed:S.refMode==='happy'?'followed the happy flow':'followed the reference flow',slow:slowText(),
+    filters:act.map(([k,l])=>({label:l,values:[...S.f[k]].map(v=>fmtV(k,v))})),segment:sf.length?sf.map(f=>f.l).join(' and '):''}); }
 function renderChips(){ const act=activeF(), sf=extraFilterFns(); let h='';
-  act.forEach(([k,l],i)=>{ if(i) h+=`<span class="join">${S.combine==='and'?'and':'or'}</span>`; h+=`<span class="fchip">${esc(l)}: ${esc([...S.f[k]].map(v=>fmtV(k,v)).join(' or '))}<button data-rm="${k}" aria-label="Remove filter">×</button></span>`; });
+  act.forEach(([k,l],i)=>{ if(i) h+=`<span class="join">${S.combine==='and'?'and':'or'}</span>`; h+=`<span class="fchip">${esc(l)}: ${esc([...S.f[k]].map(v=>fmtV(k,v)).join(' or '))}<button data-rm="${k}" aria-label="Remove filter ${esc(l)}">×</button></span>`; });
   if(sf.length) h+=`${act.length?'<span class="join">and</span>':''}<span class="fchip">Segment: ${esc(sf.map(f=>f.l).join(' and '))}<button data-rmseg="1" aria-label="Remove segment">×</button></span>`;
-  if(act.length||sf.length) h+=`<span class="note" style="margin:0 0 0 6px">${S.view.length.toLocaleString()} of ${S.all.length.toLocaleString()} ${esc(T().cases)}</span>`;
-  $('#fchips').innerHTML=h; }
+  const cs=ctxInfo();
+  if(!cs.filtered) h='<span class="nof">No filters applied</span>';
+  $('#fchips').innerHTML=h; $('#summary2').textContent=cs.headline; $('#summary').textContent=cs.headline;
+  $('#clearF').hidden=!cs.filtered; $('#combSeg').hidden=cs.filterCount<2;
+  $('#fToggle').textContent='Filters'+(cs.active?` (${cs.active})`:''); $('#ctx').classList.toggle('isf',cs.filtered); }
 $('#fchips').onclick=e=>{ if(e.target.closest('[data-rmseg]')){ S.segOn=false; S.sel=null; update(); return; } const b=e.target.closest('[data-rm]'); if(!b) return; delete S.f[b.dataset.rm]; S.sel=null; update(); };
 function addFilter(k,v){ const s=S.f[k]||(S.f[k]=new Set()); s.has(v)?s.delete(v):s.add(v); S.sel=null; update(); window.scrollTo({top:0,behavior:'smooth'}); }
 
@@ -255,7 +263,7 @@ function renderWarn(){ const M=S.meta, w=[], cases=T().cases;
   if(M.negDur) w.push(`${M.negDur.toLocaleString()} ${cases} have the end step before the start step.`);
   if(M.dfi.ambiguousOnly) w.push('Some dates are text where day and month cannot be told apart; they were read as day/month/year.');
   if(M.dfi.conflict) w.push('Text dates appear in both day/month and month/day order. Check the date columns in the source.');
-  $('#warn').hidden=!w.length; $('#warn').innerHTML=w.length?`<b>Before reading the results</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''; }
+  $('#warn').hidden=!w.length; $('#warn').innerHTML=!w.length?'':w.length===1?`<b>Data note:</b> ${esc(w[0])}`:`<details><summary><b>${w.length} data notes</b> to read before the results</summary><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`; }
 function dqList(){ const M=S.meta, L=[], cases=T().cases;
   L.push(`${M.rows.toLocaleString()} data rows read${M.sheet&&M.sheet!=='synthetic'?' from sheet "'+M.sheet+'"':''} (header on row ${M.headerRow}); ${S.all.length.toLocaleString()} ${cases} with an end-step time were analysed.`);
   if(M.noEnd) L.push(`${M.noEnd} rows had no end-step time and were excluded.`);
@@ -294,7 +302,7 @@ function fitMap(){ const wrap=$('#mapWrap'), svg=wrap.querySelector('svg'); if(!
   if(S.fit!=='fit'){ svg.style.width=W+'px'; svg.style.height=H+'px'; wrap.style.height=''; return; }
   const full=$('#mapCard').classList.contains('full'), top=wrap.getBoundingClientRect().top;
   let avail=window.innerHeight-(full?top:Math.max(top,0))-(full?20:12);
-  if(!full&&avail<320) avail=window.innerHeight-24;
+  if(!full&&avail<480) avail=480;
   const availW=wrap.clientWidth-4, k=Math.min(1,avail/H,availW/W);
   svg.style.width=Math.floor(W*k)+'px'; svg.style.height=Math.floor(H*k)+'px'; wrap.style.height=Math.floor(H*k+4)+'px'; }
 let fitT; window.addEventListener('resize',()=>{ clearTimeout(fitT); fitT=setTimeout(fitMap,80); });
@@ -484,7 +492,7 @@ function segFns(){ if(!S.segOn||!S.seg.size||!S.out) return []; const r=ruleById
 function renderRisk(){
   S.RS=ruleSummary(S.view,S.rules,S.cfg);
   $('#rulesChart').innerHTML=renderRulesSvg(S.RS).svg;
-  $('#rulesTbl').innerHTML=S.RS.length?`<table class="t"><thead><tr><th class="l">Rule</th><th>Evaluable</th><th>Met</th><th>Breaches</th><th>Not evaluable</th><th>Median value</th><th>P90</th></tr></thead><tbody>${S.RS.map((x,i)=>`<tr class="click${x.id===S.out?' on':''}" data-out="${esc(x.id)}"><td class="l">${x.id===S.out?'<b>':''}${esc(x.label)}${x.id===S.out?'</b> <span class="badge start">analysed below</span>':''}</td><td>${x.n.toLocaleString()}</td><td><b>${pctS(x.rate)}</b></td><td><button class="link" data-brf="u${i}">${x.breach.toLocaleString()}</button></td><td>${x.na.toLocaleString()}</td><td>${x.rule.type==='within'||x.rule.type==='order'?fmtMin(x.v.med):x.rule.type==='clock'?fmtMin(x.v.med)+' vs deadline':'–'}</td><td>${x.rule.type==='present'?'–':fmtMin(x.v.p90)}</td></tr>`).join('')}</tbody></table><p class="note">Median value: the time from the first to the second step for time and order rules, and the time before (−) or after the deadline for clock rules.</p>`:'';
+  $('#rulesTbl').innerHTML=S.RS.length?`<table class="t"><thead><tr><th class="l">Rule</th><th>Evaluable</th><th>Met</th><th>Breaches</th><th>Not evaluable</th><th>Median value</th><th>P90</th></tr></thead><tbody>${S.RS.map((x,i)=>`<tr class="click${x.id===S.out?' on':''}" data-out="${esc(x.id)}"><td class="l">${x.id===S.out?'<b>':''}${esc(x.label)}${x.id===S.out?'</b> <span class="badge start">analysed below</span>':''}</td><td>${x.n.toLocaleString()}</td><td><b>${pctS(x.rate)}</b></td><td><button class="link" data-brf="u${i}" title="Filter every tab to these cases">Show ${x.breach.toLocaleString()}</button></td><td>${x.na.toLocaleString()}</td><td>${x.rule.type==='within'||x.rule.type==='order'?fmtMin(x.v.med):x.rule.type==='clock'?fmtMin(x.v.med)+' vs deadline':'–'}</td><td>${x.rule.type==='present'?'–':fmtMin(x.v.p90)}</td></tr>`).join('')}</tbody></table><p class="note">Median value: the time from the first to the second step for time and order rules, and the time before (−) or after the deadline for clock rules.</p>`:'';
   $('#riskBody').hidden=!S.rules.length; if(!S.rules.length) return;
   const rule=ruleById(S.out)||S.rules[0]; S.out=rule.id; $('#outSel').value=rule.id; const L=ruleText(rule);
   const RA=S.RA=riskAnalyse(S.view,rule,riskOpts());
@@ -596,13 +604,14 @@ window.addEventListener('drop',e=>{ const dt=e.dataTransfer; if(!dt) return; let
 const sb=document.getElementById('scriptBlocked'); if(sb) sb.remove();
 $('#exportBtn').onclick=exportDeck;
 $('#tabs').onclick=e=>{ const b=e.target.closest('button[data-tab]'); if(b) showTab(b.dataset.tab); };
-function showTab(t){ $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t)); $$('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t); if(t==='process') fitMap(); }
+function showTab(t){ $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t)); $$('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t); const on=$('#tabs button.on'); if(on) $('#tabs').scrollLeft=Math.max(0,on.offsetLeft-24); if(t==='process') fitMap(); }
 $$('#metricSeg button').forEach(b=>b.onclick=()=>{ S.metric=b.dataset.m; $$('#metricSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderMap(); });
 $('#minPct').oninput=e=>{ S.minPct=+e.target.value; $('#minPctV').textContent=S.minPct+'%'; renderMap(); };
 $('#postChk').onchange=e=>{ S.opt.post=e.target.checked; S.sel=null; recompute(); };
 $('#refSel').onchange=e=>{ S.refMode=e.target.value; update(); };
 $$('#vmodeSeg button').forEach(b=>b.onclick=()=>{ S.opt.vmode=b.dataset.v; $$('#vmodeSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; S.refCustom=null; if(S.refMode==='custom'){ S.refMode='happy'; $('#refSel').value='happy'; } $('#refSel option[value=custom]').disabled=true; recompute(); });
 $$('#combSeg button').forEach(b=>b.onclick=()=>{ S.combine=b.dataset.c; $$('#combSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; update(); });
+$('#fToggle').onclick=()=>{ const o=$('#ctx').classList.toggle('open'); $('#fToggle').setAttribute('aria-expanded',o); };
 $('#clearF').onclick=()=>{ S.f={}; S.segOn=false; S.sel=null; update(); };
 $('#moreBtn').onclick=()=>{ const m=$('#more'); m.hidden=!m.hidden; $('#moreBtn').textContent=m.hidden?'More filters':'Fewer filters'; };
 $('#setBtn').onclick=()=>{ $('#setPop').hidden=!$('#setPop').hidden; };

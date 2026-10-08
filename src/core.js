@@ -1190,4 +1190,13 @@ const SAMPLE_CONFIG={
   settings:{weekend:[6,0],basis:'start'}
 };
 
-if(typeof module!=='undefined') module.exports={PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,RULE_TYPES,parseHM,ruleProblems,ruleLabel,ruleDeadline,evalRule,applyRules,ruleSummary,riskFactors,factorTable,logitModel,groupVariation,openAtDeadline,riskAnalyse,renderForestSvg,renderVariationSvg,renderOpenSvg,renderRulesSvg,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};
+/* Context summary for the sticky status bar: one plain line plus what is filtered. Pure; no engine change. */
+function contextSummary(o){ const n=o.n, tot=o.total, c=o.cases||'cases', f=(o.filters||[]).filter(x=>x&&x.values&&x.values.length);
+  const parts=[n===tot?`${n.toLocaleString('en-GB')} ${c}`:`${n.toLocaleString('en-GB')} of ${tot.toLocaleString('en-GB')} ${c}`];
+  if(n>0&&o.conf!=null&&isFinite(o.conf)) parts.push(`${o.confText||Math.round(o.conf*100)+'%'} ${o.followed||'followed the happy flow'}`);
+  if(n>0&&o.slow) parts.push(`slowest step ${o.slow}`);
+  const active=f.length+(o.segment?1:0);
+  return {headline:parts.join(' · '),active,filtered:active>0,filterCount:f.length,empty:n===0,
+    items:f.map(x=>({label:x.label,text:x.values.join(' or ')})).concat(o.segment?[{label:'Segment',text:o.segment}]:[])}; }
+
+if(typeof module!=='undefined') module.exports={contextSummary,PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,RULE_TYPES,parseHM,ruleProblems,ruleLabel,ruleDeadline,evalRule,applyRules,ruleSummary,riskFactors,factorTable,logitModel,groupVariation,openAtDeadline,riskAnalyse,renderForestSvg,renderVariationSvg,renderOpenSvg,renderRulesSvg,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};

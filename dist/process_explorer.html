@@ -43,11 +43,17 @@ button,input,select,textarea{font:inherit;color:inherit}
 main{padding:14px 24px 40px;max-width:1720px;margin:0 auto}
 
 /* empty state */
-.empty{max-width:860px;margin:36px auto;background:var(--white);border:1px dashed var(--ink3);padding:34px 40px}
+.empty{max-width:760px;margin:9vh auto 0;text-align:center;padding:0 8px}
 .empty.drag{border-color:var(--teal);background:var(--t6)}
-.empty h2{margin:6px 0 8px;font:800 24px/1.1 var(--fD);letter-spacing:-.03em}
+.empty h2{margin:6px 0 10px;font:800 34px/1.1 var(--fD);letter-spacing:-.03em}
 .empty p{margin:0 0 14px;max-width:70ch}
-.empty .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}
+.empty .row,.empty .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:18px 0 4px}
+.empty .row2{margin:10px 0 18px}
+.btn.big{height:48px;padding:0 32px;font-size:13px}
+.empty p{margin-left:auto;margin-right:auto}
+.shape{text-align:left;max-width:700px;margin:8px auto 0;background:var(--white);border:1px solid var(--rule);padding:10px 16px}
+.shape summary,.how summary{cursor:pointer;color:var(--teal);font:500 11px/1.6 var(--fL);letter-spacing:.1em;text-transform:uppercase}
+.how{margin-top:8px}
 .shape{margin-top:22px;border-top:1px solid var(--rule);padding-top:14px;font-size:12px;color:var(--ink2)}
 .shape table{border-collapse:collapse;margin:8px 0;font-size:11.5px}
 .shape td,.shape th{border:1px solid var(--rule);padding:3px 8px;text-align:left;white-space:nowrap}
@@ -92,9 +98,9 @@ main{padding:14px 24px 40px;max-width:1720px;margin:0 auto}
 .issues .err,.issues .warn{margin:6px 0 0}
 
 /* filters */
-.filters{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-bottom:8px}
+.filters{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-end;margin-bottom:6px}
 .fl{display:flex;flex-direction:column;font:500 10px/1.2 var(--fL);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);gap:4px;position:relative}
-.ms-btn{height:30px;min-width:150px;max-width:230px;border:1px solid var(--ruleM);background:var(--white);padding:0 26px 0 8px;color:var(--ink);text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;font:500 12.5px/1 var(--fD);letter-spacing:0;text-transform:none}
+.ms-btn{height:30px;min-width:118px;max-width:190px;border:1px solid var(--ruleM);background:var(--white);padding:0 26px 0 8px;color:var(--ink);text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;font:500 12.5px/1 var(--fD);letter-spacing:0;text-transform:none}
 .ms-btn::after{content:"";position:absolute;right:10px;top:12px;border:4px solid transparent;border-top-color:var(--ink2)}
 .ms-btn.on{border-color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal);font-weight:700}
 .pop{position:absolute;top:100%;left:0;z-index:20;margin-top:4px;background:var(--white);border:1px solid var(--ink3);padding:8px;width:300px;color:var(--ink);font:500 12px/1.4 var(--fD);letter-spacing:0;text-transform:none}
@@ -107,9 +113,10 @@ main{padding:14px 24px 40px;max-width:1720px;margin:0 auto}
 .ms-list span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pop-f{display:flex;gap:6px;justify-content:space-between;margin-top:6px;border-top:1px solid var(--rule);padding-top:6px}
 .fbar-r{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.seg[hidden],.btn[hidden]{display:none}
 #more:not([hidden]){display:contents}
-.chipsrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-2px 0 8px;font-size:12px}
-.chipsrow:empty{display:none}
+.chipsrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;min-width:0}
+.nof{color:var(--ink2)}
 .fchip{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;background:var(--ink);color:var(--cream)}
 .fchip button{border:0;background:rgba(253,251,247,.18);color:var(--cream);padding:0 7px;cursor:pointer}
 .join{color:var(--ink2);font-weight:700}
@@ -118,15 +125,17 @@ main{padding:14px 24px 40px;max-width:1720px;margin:0 auto}
 
 /* KPIs and tabs */
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--white);border:1px solid var(--rule);margin-bottom:10px}
-.kpi{padding:9px 14px;border-left:1px solid var(--rule)}
+.kpi span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi{padding:6px 14px;border-left:1px solid var(--rule)}
 .kpi:first-child{border-left:0;background:var(--canvas);color:var(--cream)}
-.kpi b{display:block;font:800 22px/1.15 var(--fD);letter-spacing:-.03em;color:var(--ink)}
+.kpi b{display:block;font:800 19px/1.15 var(--fD);letter-spacing:-.03em;color:var(--ink)}
 .kpi:first-child b{color:var(--cream)}
 .kpi span{display:block;font:500 10px/1.3 var(--fL);letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-top:2px}
-.kpi small{display:block;font-size:11px;color:var(--ink2)}
+.kpi small{display:none;font-size:11px;color:var(--ink2)}
 .kpi:first-child small{color:var(--onDark2)}
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--rule);margin-bottom:12px;flex-wrap:wrap}
-.tabs button{border:0;background:none;padding:9px 16px;cursor:pointer;color:var(--ink2);font:500 11px/1 var(--fL);letter-spacing:.13em;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;border:0;background:none;padding:9px 16px;cursor:pointer;color:var(--ink2);font:500 11px/1 var(--fL);letter-spacing:.13em;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--teal)}
 
 /* cards and controls */
@@ -224,6 +233,46 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
 @media (max-width:1150px){.grid-proc,.grid-2,.reasons,.grid-var,.flow{grid-template-columns:1fr}.var-card{max-height:none}.kpis{grid-template-columns:repeat(3,1fr)}.kpi:nth-child(4){border-left:0}}
 @media (max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}main{padding:14px 16px}.top{padding:12px 16px}.empty{padding:22px 18px}.brand .sep,.brand .mm-wordmark{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* human-factors pass: sticky context bar, offline pill, compact notes */
+.offline{font:500 10.5px/1 var(--fL);letter-spacing:.1em;text-transform:uppercase;color:var(--onDark2);border:1px solid rgba(253,251,247,.25);padding:6px 9px;white-space:nowrap}
+body.has-app .privacy{display:none}
+.ctx{position:sticky;top:0;z-index:15;background:var(--cream);padding-top:8px;margin:-14px -24px 10px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--rule)}
+.ctxrow,#fToggle{display:none}
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:2px 0 8px}
+.summary{font:700 13px/1.3 var(--fD);color:var(--ink)}
+.status .chipsrow{flex:1 1 auto}
+.ctx.isf{border-bottom-color:var(--teal)}
+.warn{margin-bottom:8px;padding:5px 12px}
+.warn details summary{cursor:pointer}
+.t tr.click:hover td{background:var(--t6)}
+.t tr.click td:first-child{border-left:3px solid transparent}.t tr.click:hover td:first-child{border-left-color:var(--teal)}
+.t .link{border:1px solid var(--teal);padding:2px 8px;text-decoration:none;font-size:11.5px}.t .link:hover{background:var(--teal);color:var(--cream)}
+@media (max-width:640px){
+ .ctx{margin:-14px -16px 8px;padding:6px 16px 0}
+ .ctxrow{display:flex;gap:8px;align-items:center;padding-bottom:6px}
+ #fToggle{display:inline-flex;flex:0 0 auto}
+ .summary.mob{font-size:12px}
+ .ctx .status .summary{display:none}
+ .ctx:not(.isf) .status{display:none}
+ .ctx .filters{display:none;max-height:42vh;overflow:auto}
+ .ctx.open .filters{display:flex}
+ .privacy{padding:5px 16px}
+ .offline{display:none}
+ .top .sub,.top .file{display:none}
+ .top{gap:8px}
+ .kpis{display:flex;overflow-x:auto}
+ .kpi{flex:0 0 138px}
+ .empty{margin-top:5vh}.empty h2{font-size:27px}
+ .tabs button{padding:10px 12px}
+ .pop{width:min(300px,86vw)}
+}
+body.has-app .offline{display:none}
+.grid-proc>*,.grid-2>*,.grid-var>*{min-width:0}
+.map-card .card-h h2{display:none}
+.map-card .card-h{justify-content:flex-start}
+.ctrl{flex-wrap:wrap}
+@media (max-width:640px){#rulesTbl th:nth-child(2),#rulesTbl td:nth-child(2),#rulesTbl th:nth-child(5),#rulesTbl td:nth-child(5),#rulesTbl th:nth-child(6),#rulesTbl td:nth-child(6),#rulesTbl th:nth-child(7),#rulesTbl td:nth-child(7){display:none}}
 </style>
 </head>
 <body>
@@ -237,6 +286,7 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
     </div>
   </div>
   <div class="actions">
+    <span class="offline" title="The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.">Offline · nothing uploaded</span>
     <span id="fileName" class="file"></span>
     <button id="setupBtn" class="btn" hidden>Setup</button>
     <label class="btn" for="file" tabindex="0" id="loadLbl">Load file</label>
@@ -248,24 +298,28 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
 <div class="privacy">Runs only in this browser. The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.</div>
 <main>
   <section id="empty" class="empty">
-    <div class="lbl">Prototype · synthetic sample included</div>
+    <div class="lbl">Synthetic sample included</div>
     <h2>See how cases move through a process</h2>
-    <p>Load a spreadsheet with one row per case and one timestamp column per step. A short setup asks which column is which, what the happy flow looks like, which rules apply and which variables matter. Everything else is calculated from the timestamps.</p>
+    <p>Load a spreadsheet with one row per case and one timestamp column per step. Everything else is calculated from the timestamps.</p>
     <div class="row">
-      <label class="btn primary" for="file">Choose a .csv or .xlsx file</label>
-      <button class="btn" id="sampleBtn">Try the synthetic sample</button>
+      <button class="btn primary big" id="sampleBtn">Try the synthetic sample</button>
+    </div>
+    <div class="row2">
+      <label class="btn" for="file">Choose a .csv or .xlsx file</label>
       <label class="btn ghost" for="cfgFile" tabindex="0" id="cfgLbl">Import a saved setup (.json)</label>
     </div>
     <div id="cfgNote"></div>
     <div id="loadErr"><div class="err" id="scriptBlocked">This viewer is blocking the page's scripts, so files can't be loaded here. Download the .html file and open it directly in a current browser.</div></div>
-    <div class="shape">
-      <div class="lbl">Expected shape</div>
+    <details class="shape">
+      <summary>What should my file look like?</summary>
+
       <table>
         <tr><th>case_id</th><th>unit</th><th>step_a_at</th><th>step_b_at</th><th>…</th><th>finished_at</th><th>delay_reason</th></tr>
         <tr><td>C-001</td><td>Unit A</td><td>2026-03-02 09:10</td><td>2026-03-02 10:05</td><td>…</td><td>2026-03-02 13:40</td><td>Awaiting transport</td></tr>
       </table>
       Column names are free. Dates can be spreadsheet dates or text such as 2026-03-02 09:10, 02/03/2026 9:10 or 2 Mar 2026 09:10. The header row can sit below report titles. Columns that look like personal data (names, dates of birth, record numbers, contact details) are ignored unless you choose otherwise.
-    </div>
+    
+    </details>
   </section>
 
   <section id="wiz" class="wiz" hidden>
@@ -282,13 +336,15 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
   </section>
 
   <section id="app" hidden>
+    <div class="ctx" id="ctx">
+    <div class="ctxrow"><button class="btn ghost" id="fToggle" aria-expanded="false">Filters</button><div id="summary" class="summary mob"></div></div>
     <div class="filters" id="filters">
       <div id="fPrimary" style="display:contents"></div>
       <div id="more" hidden></div>
       <div class="fbar-r">
         <button class="btn ghost" id="moreBtn">More filters</button>
         <div class="seg" id="combSeg" title="How selections in different filters combine. Values within one filter always combine with OR."><button data-c="and" class="on">Match all</button><button data-c="or">Match any</button></div>
-        <button class="btn ghost" id="clearF">Clear filters</button>
+        
         <div class="fl"><button class="btn ghost" id="setBtn">Settings</button>
           <div class="pop set-pop" id="setPop" hidden style="left:auto;right:0">
             <h4>Weekend days</h4><div class="days" id="wkDays"></div>
@@ -298,9 +354,8 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
           </div></div>
       </div>
     </div>
-    <div id="fchips" class="chipsrow"></div>
-    <div id="warn" class="warn" hidden></div>
-    <div class="kpis" id="kpis"></div>
+    
+    <div class="status"><div id="summary2" class="summary"></div><div id="fchips" class="chipsrow"></div><button class="btn ghost" id="clearF" hidden>Clear all</button></div>
     <nav class="tabs" role="tablist" id="tabs">
       <button class="on" data-tab="process">Process map</button>
       <button data-tab="timing">Timing and delays</button>
@@ -310,6 +365,9 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
       <button data-tab="lookup">Case lookup</button>
       <button data-tab="findings">Findings</button>
     </nav>
+    </div>
+    <div id="warn" class="warn" hidden></div>
+    <div class="kpis" id="kpis"></div>
 
     <div id="tab-process" class="tab">
       <div class="grid-proc">
@@ -331,9 +389,9 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
             <div id="mapWrap" class="map-wrap"></div>
             <div id="refTxt" class="note" style="margin:8px 0 0"></div>
             <div class="legend"><span><i style="background:var(--ink)"></i>Reference flow</span><span><i style="background:var(--skip)"></i>Skips ahead of the reference order (right)</span><span><i style="background:var(--alert)"></i>Recorded earlier than the reference order (left)</span><span><i style="background:var(--ink2)"></i>Other direct steps</span><span id="slowLeg" hidden><i style="background:var(--alertWash);height:10px;border:1px solid var(--alert)"></i>Three slowest transitions</span></div>
-            <p class="note">Each case becomes a sequence by sorting its step timestamps; an arrow means one step was directly followed by the next. Times on arrows are the gap between those two timestamps. Click a step, an arrow or a sequence to list its cases. Hover for details.</p>
+            <details class="how"><summary>How to read this map</summary><p class="note">Each case becomes a sequence by sorting its step timestamps; an arrow means one step was directly followed by the next. Times on arrows are the gap between those two timestamps. Click a step, an arrow or a sequence to list its cases. Hover for details.</p></details>
           </div>
-          <div class="card" id="selHint"><h2 style="margin:0 0 4px">Cases on a path</h2><p class="note" style="margin:0">Select a sequence on the right, or a step or arrow on the map, to list the cases behind it and open any of them in the lookup.</p></div>
+          <div class="card" id="selHint"><h2 style="margin:0 0 4px">Cases on a path</h2><p class="note" style="margin:0">Click a step, an arrow or a sequence to list its cases.</p></div>
           <div class="card" id="selCard" hidden>
             <div class="card-h"><h2 id="selTitle"></h2><div class="ctrl"><button class="btn ghost" id="selRef" hidden>Use as reference flow</button><button class="btn ghost" id="selCsv">Download list (.csv)</button><button class="btn ghost" id="selClear">Clear selection</button></div></div>
             <div id="selBody"></div>
@@ -363,7 +421,7 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
 
     <div id="tab-risk" class="tab" hidden>
       <div class="card">
-        <div class="card-h"><h2>Rules</h2><span class="note" style="margin:0">Click a rule to analyse it below. Click a breach count to filter every tab to those cases. Edit rules in Setup.</span></div>
+        <div class="card-h"><h2>Rules</h2><span class="note" style="margin:0">Select a rule to analyse it below</span></div>
         <div id="rulesChart" class="chart-scroll"></div>
         <div id="rulesTbl" class="tbl-scroll" style="margin-top:10px"></div>
       </div>
@@ -372,7 +430,7 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
           <div class="card-h"><h2 id="facTitle">Factors</h2>
             <div class="ctrl"><label class="rng">Outcome <select id="outSel"></select></label><label class="rng">Late start: on the end day at or after <select id="lateH"></select></label></div></div>
           <div class="tgt-head" id="tgtHead"></div>
-          <p class="note" style="margin:6px 0 10px">Tick factors to build a segment you can apply as a filter. Values of a variable are each compared with all other values of that variable.</p>
+          <p class="note" style="margin:6px 0 10px">Tick factors to filter to them.</p>
           <div id="factors" class="tbl-scroll"></div>
           <div id="segBox" class="seg-box"></div>
         </div>
@@ -395,7 +453,7 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
         <div class="card-h"><h2>Breakdown</h2>
           <div class="ctrl"><label class="rng">Group by <select id="dim"></select></label><label class="rng">Min. cases <input id="minN" type="number" value="10" min="1" class="num"></label><button class="btn ghost" id="bdCsv">Download table (.csv)</button></div>
         </div>
-        <p class="note" style="margin:0 0 8px">Click a column heading to sort, or a row to add it to the filters. Red: median more than 25% above the filtered median, for groups at or above the minimum size.</p>
+        <p class="note" style="margin:0 0 8px">Click a row to filter to that group. Red: median more than 25% above the rest.</p>
         <div id="breakdown" class="tbl-scroll"></div>
       </div>
     </div>
@@ -416,10 +474,10 @@ footer.foot{max-width:1720px;margin:0 auto;padding:0 24px 24px;font-size:11px;co
       <div class="card">
         <div class="card-h"><h2>Find a case and compare it with the reference flow</h2></div>
         <div class="lookup-bar">
-          <input type="text" id="q" placeholder="Case ID" autocomplete="off">
+          <input type="text" id="q" placeholder="Type a case ID, then press Find" autocomplete="off">
           <button class="btn primary" id="qBtn">Find</button>
         </div>
-        <div id="lookupRes"><p class="empty-msg">Search covers the whole loaded file, not only the filtered view. Medians used for comparison come from the filtered cases.</p></div>
+        <div id="lookupRes"><p class="empty-msg">Searches the whole file, not only the filtered cases.</p></div>
       </div>
     </div>
 
@@ -1628,7 +1686,16 @@ const SAMPLE_CONFIG={
   settings:{weekend:[6,0],basis:'start'}
 };
 
-if(typeof module!=='undefined') module.exports={PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,RULE_TYPES,parseHM,ruleProblems,ruleLabel,ruleDeadline,evalRule,applyRules,ruleSummary,riskFactors,factorTable,logitModel,groupVariation,openAtDeadline,riskAnalyse,renderForestSvg,renderVariationSvg,renderOpenSvg,renderRulesSvg,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};
+/* Context summary for the sticky status bar: one plain line plus what is filtered. Pure; no engine change. */
+function contextSummary(o){ const n=o.n, tot=o.total, c=o.cases||'cases', f=(o.filters||[]).filter(x=>x&&x.values&&x.values.length);
+  const parts=[n===tot?`${n.toLocaleString('en-GB')} ${c}`:`${n.toLocaleString('en-GB')} of ${tot.toLocaleString('en-GB')} ${c}`];
+  if(n>0&&o.conf!=null&&isFinite(o.conf)) parts.push(`${o.confText||Math.round(o.conf*100)+'%'} ${o.followed||'followed the happy flow'}`);
+  if(n>0&&o.slow) parts.push(`slowest step ${o.slow}`);
+  const active=f.length+(o.segment?1:0);
+  return {headline:parts.join(' · '),active,filtered:active>0,filterCount:f.length,empty:n===0,
+    items:f.map(x=>({label:x.label,text:x.values.join(' or ')})).concat(o.segment?[{label:'Segment',text:o.segment}]:[])}; }
+
+if(typeof module!=='undefined') module.exports={contextSummary,PAL,SEM,CONFIG_SCHEMA,ROLES,parseCsv,readXlsxRows,toTable,findHeader,profileColumns,stepStats,typicalOrder,mergeConfig,isPiiHeader,suggestConfig,normaliseConfig,validateConfig,setSchema,buildRecords,prepare,keyOf,buildModel,layoutOrder,deviations,stats,milestoneTiming,lastMilestone,reasonTables,breakdown,topReason,heatData,analyse,draftRecs,renderMapSvg,renderMapSvgH,renderTimingSvg,renderLastSvg,renderHourSvg,renderHeatSvg,renderEncSvg,buildDeck,zipStore,toDate,RULE_TYPES,parseHM,ruleProblems,ruleLabel,ruleDeadline,evalRule,applyRules,ruleSummary,riskFactors,factorTable,logitModel,groupVariation,openAtDeadline,riskAnalyse,renderForestSvg,renderVariationSvg,renderOpenSvg,renderRulesSvg,fmtMin,pctS,synthRows,SAMPLE_CONFIG,get SCH(){return SCH;}};
 </script>
 <script>(function(){
 'use strict';
@@ -1694,7 +1761,7 @@ async function readCfgFile(file){
 $('#cfgFile').onchange=e=>readCfgFile(e.target.files[0]);
 function exportCfg(c){ download(new Blob([JSON.stringify(c,null,2)],{type:'application/json'}),`${slug(c.name)}_setup.json`); }
 $('#cfgExport').onclick=()=>exportCfg(normaliseConfig(S.draft));
-function showEmpty(){ $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#setupBtn').hidden=true; }
+function showEmpty(){ document.body.classList.remove('has-app'); $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#setupBtn').hidden=true; }
 
 /* =====================================================================
    Setup wizard
@@ -1799,7 +1866,7 @@ function applySetup(){
     S.all=B.recs; S.meta=B.meta; S.f={}; S.sel=null; S.refMode='happy'; S.refCustom=null; S.lastQ='';
     S.opt.weekend=S.cfg.settings.weekend||[6,0]; S.opt.basis=S.cfg.settings.basis==='end'?'end':'start';
     $('#refSel').value='happy'; $('#refSel option[value=custom]').disabled=true;
-    $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
+    document.body.classList.add('has-app'); $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
     $('#subTitle').textContent=`${S.cfg.name} · ${S.cfg.happyFlow.length} happy-flow steps · ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`;
     setupRulesUI(); syncSettingsUI(); buildFilters(); recompute(); showTab('process'); toast(`Loaded ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`);
   }catch(e){ console.error(e); toast(e.message||String(e),true); }
@@ -1852,11 +1919,19 @@ function applyFilters(noSeg){ const act=activeF(), SF=noSeg?[]:extraFilterFns();
 function scopeText(){ const act=activeF().map(([k,l])=>`${l}: ${[...S.f[k]].map(v=>fmtV(k,v)).join(' or ')}`);
   const sf=extraFilterFns(); if(sf.length) act.push('Segment: '+sf.map(f=>f.l).join(' and '));
   return act.length?act.join(S.combine==='and'?'; and ':'; or '):`All ${T().cases} in the file`; }
+function slowText(){ const A=S.A; const s=[...A.model.edges.values()].filter(e=>A.slow.has(e.key)&&e.st&&e.st.n).sort((a,b)=>b.st.med-a.st.med)[0]; return s?`${EVL(s.a)} → ${EVL(s.b)} (${fmtMin(s.st.med)})`:''; }
+function ctxInfo(){ const act=activeF(), sf=extraFilterFns();
+  return contextSummary({n:S.view.length,total:S.all.length,cases:T().cases,conf:S.A.st.conf,confText:pctS(S.A.st.conf),
+    followed:S.refMode==='happy'?'followed the happy flow':'followed the reference flow',slow:slowText(),
+    filters:act.map(([k,l])=>({label:l,values:[...S.f[k]].map(v=>fmtV(k,v))})),segment:sf.length?sf.map(f=>f.l).join(' and '):''}); }
 function renderChips(){ const act=activeF(), sf=extraFilterFns(); let h='';
-  act.forEach(([k,l],i)=>{ if(i) h+=`<span class="join">${S.combine==='and'?'and':'or'}</span>`; h+=`<span class="fchip">${esc(l)}: ${esc([...S.f[k]].map(v=>fmtV(k,v)).join(' or '))}<button data-rm="${k}" aria-label="Remove filter">×</button></span>`; });
+  act.forEach(([k,l],i)=>{ if(i) h+=`<span class="join">${S.combine==='and'?'and':'or'}</span>`; h+=`<span class="fchip">${esc(l)}: ${esc([...S.f[k]].map(v=>fmtV(k,v)).join(' or '))}<button data-rm="${k}" aria-label="Remove filter ${esc(l)}">×</button></span>`; });
   if(sf.length) h+=`${act.length?'<span class="join">and</span>':''}<span class="fchip">Segment: ${esc(sf.map(f=>f.l).join(' and '))}<button data-rmseg="1" aria-label="Remove segment">×</button></span>`;
-  if(act.length||sf.length) h+=`<span class="note" style="margin:0 0 0 6px">${S.view.length.toLocaleString()} of ${S.all.length.toLocaleString()} ${esc(T().cases)}</span>`;
-  $('#fchips').innerHTML=h; }
+  const cs=ctxInfo();
+  if(!cs.filtered) h='<span class="nof">No filters applied</span>';
+  $('#fchips').innerHTML=h; $('#summary2').textContent=cs.headline; $('#summary').textContent=cs.headline;
+  $('#clearF').hidden=!cs.filtered; $('#combSeg').hidden=cs.filterCount<2;
+  $('#fToggle').textContent='Filters'+(cs.active?` (${cs.active})`:''); $('#ctx').classList.toggle('isf',cs.filtered); }
 $('#fchips').onclick=e=>{ if(e.target.closest('[data-rmseg]')){ S.segOn=false; S.sel=null; update(); return; } const b=e.target.closest('[data-rm]'); if(!b) return; delete S.f[b.dataset.rm]; S.sel=null; update(); };
 function addFilter(k,v){ const s=S.f[k]||(S.f[k]=new Set()); s.has(v)?s.delete(v):s.add(v); S.sel=null; update(); window.scrollTo({top:0,behavior:'smooth'}); }
 
@@ -1887,7 +1962,7 @@ function renderWarn(){ const M=S.meta, w=[], cases=T().cases;
   if(M.negDur) w.push(`${M.negDur.toLocaleString()} ${cases} have the end step before the start step.`);
   if(M.dfi.ambiguousOnly) w.push('Some dates are text where day and month cannot be told apart; they were read as day/month/year.');
   if(M.dfi.conflict) w.push('Text dates appear in both day/month and month/day order. Check the date columns in the source.');
-  $('#warn').hidden=!w.length; $('#warn').innerHTML=w.length?`<b>Before reading the results</b><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''; }
+  $('#warn').hidden=!w.length; $('#warn').innerHTML=!w.length?'':w.length===1?`<b>Data note:</b> ${esc(w[0])}`:`<details><summary><b>${w.length} data notes</b> to read before the results</summary><ul>${w.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`; }
 function dqList(){ const M=S.meta, L=[], cases=T().cases;
   L.push(`${M.rows.toLocaleString()} data rows read${M.sheet&&M.sheet!=='synthetic'?' from sheet "'+M.sheet+'"':''} (header on row ${M.headerRow}); ${S.all.length.toLocaleString()} ${cases} with an end-step time were analysed.`);
   if(M.noEnd) L.push(`${M.noEnd} rows had no end-step time and were excluded.`);
@@ -1926,7 +2001,7 @@ function fitMap(){ const wrap=$('#mapWrap'), svg=wrap.querySelector('svg'); if(!
   if(S.fit!=='fit'){ svg.style.width=W+'px'; svg.style.height=H+'px'; wrap.style.height=''; return; }
   const full=$('#mapCard').classList.contains('full'), top=wrap.getBoundingClientRect().top;
   let avail=window.innerHeight-(full?top:Math.max(top,0))-(full?20:12);
-  if(!full&&avail<320) avail=window.innerHeight-24;
+  if(!full&&avail<480) avail=480;
   const availW=wrap.clientWidth-4, k=Math.min(1,avail/H,availW/W);
   svg.style.width=Math.floor(W*k)+'px'; svg.style.height=Math.floor(H*k)+'px'; wrap.style.height=Math.floor(H*k+4)+'px'; }
 let fitT; window.addEventListener('resize',()=>{ clearTimeout(fitT); fitT=setTimeout(fitMap,80); });
@@ -2116,7 +2191,7 @@ function segFns(){ if(!S.segOn||!S.seg.size||!S.out) return []; const r=ruleById
 function renderRisk(){
   S.RS=ruleSummary(S.view,S.rules,S.cfg);
   $('#rulesChart').innerHTML=renderRulesSvg(S.RS).svg;
-  $('#rulesTbl').innerHTML=S.RS.length?`<table class="t"><thead><tr><th class="l">Rule</th><th>Evaluable</th><th>Met</th><th>Breaches</th><th>Not evaluable</th><th>Median value</th><th>P90</th></tr></thead><tbody>${S.RS.map((x,i)=>`<tr class="click${x.id===S.out?' on':''}" data-out="${esc(x.id)}"><td class="l">${x.id===S.out?'<b>':''}${esc(x.label)}${x.id===S.out?'</b> <span class="badge start">analysed below</span>':''}</td><td>${x.n.toLocaleString()}</td><td><b>${pctS(x.rate)}</b></td><td><button class="link" data-brf="u${i}">${x.breach.toLocaleString()}</button></td><td>${x.na.toLocaleString()}</td><td>${x.rule.type==='within'||x.rule.type==='order'?fmtMin(x.v.med):x.rule.type==='clock'?fmtMin(x.v.med)+' vs deadline':'–'}</td><td>${x.rule.type==='present'?'–':fmtMin(x.v.p90)}</td></tr>`).join('')}</tbody></table><p class="note">Median value: the time from the first to the second step for time and order rules, and the time before (−) or after the deadline for clock rules.</p>`:'';
+  $('#rulesTbl').innerHTML=S.RS.length?`<table class="t"><thead><tr><th class="l">Rule</th><th>Evaluable</th><th>Met</th><th>Breaches</th><th>Not evaluable</th><th>Median value</th><th>P90</th></tr></thead><tbody>${S.RS.map((x,i)=>`<tr class="click${x.id===S.out?' on':''}" data-out="${esc(x.id)}"><td class="l">${x.id===S.out?'<b>':''}${esc(x.label)}${x.id===S.out?'</b> <span class="badge start">analysed below</span>':''}</td><td>${x.n.toLocaleString()}</td><td><b>${pctS(x.rate)}</b></td><td><button class="link" data-brf="u${i}" title="Filter every tab to these cases">Show ${x.breach.toLocaleString()}</button></td><td>${x.na.toLocaleString()}</td><td>${x.rule.type==='within'||x.rule.type==='order'?fmtMin(x.v.med):x.rule.type==='clock'?fmtMin(x.v.med)+' vs deadline':'–'}</td><td>${x.rule.type==='present'?'–':fmtMin(x.v.p90)}</td></tr>`).join('')}</tbody></table><p class="note">Median value: the time from the first to the second step for time and order rules, and the time before (−) or after the deadline for clock rules.</p>`:'';
   $('#riskBody').hidden=!S.rules.length; if(!S.rules.length) return;
   const rule=ruleById(S.out)||S.rules[0]; S.out=rule.id; $('#outSel').value=rule.id; const L=ruleText(rule);
   const RA=S.RA=riskAnalyse(S.view,rule,riskOpts());
@@ -2228,13 +2303,14 @@ window.addEventListener('drop',e=>{ const dt=e.dataTransfer; if(!dt) return; let
 const sb=document.getElementById('scriptBlocked'); if(sb) sb.remove();
 $('#exportBtn').onclick=exportDeck;
 $('#tabs').onclick=e=>{ const b=e.target.closest('button[data-tab]'); if(b) showTab(b.dataset.tab); };
-function showTab(t){ $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t)); $$('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t); if(t==='process') fitMap(); }
+function showTab(t){ $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t)); $$('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t); const on=$('#tabs button.on'); if(on) $('#tabs').scrollLeft=Math.max(0,on.offsetLeft-24); if(t==='process') fitMap(); }
 $$('#metricSeg button').forEach(b=>b.onclick=()=>{ S.metric=b.dataset.m; $$('#metricSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderMap(); });
 $('#minPct').oninput=e=>{ S.minPct=+e.target.value; $('#minPctV').textContent=S.minPct+'%'; renderMap(); };
 $('#postChk').onchange=e=>{ S.opt.post=e.target.checked; S.sel=null; recompute(); };
 $('#refSel').onchange=e=>{ S.refMode=e.target.value; update(); };
 $$('#vmodeSeg button').forEach(b=>b.onclick=()=>{ S.opt.vmode=b.dataset.v; $$('#vmodeSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; S.refCustom=null; if(S.refMode==='custom'){ S.refMode='happy'; $('#refSel').value='happy'; } $('#refSel option[value=custom]').disabled=true; recompute(); });
 $$('#combSeg button').forEach(b=>b.onclick=()=>{ S.combine=b.dataset.c; $$('#combSeg button').forEach(x=>x.classList.toggle('on',x===b)); S.sel=null; update(); });
+$('#fToggle').onclick=()=>{ const o=$('#ctx').classList.toggle('open'); $('#fToggle').setAttribute('aria-expanded',o); };
 $('#clearF').onclick=()=>{ S.f={}; S.segOn=false; S.sel=null; update(); };
 $('#moreBtn').onclick=()=>{ const m=$('#more'); m.hidden=!m.hidden; $('#moreBtn').textContent=m.hidden?'More filters':'Fewer filters'; };
 $('#setBtn').onclick=()=>{ $('#setPop').hidden=!$('#setPop').hidden; };

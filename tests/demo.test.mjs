@@ -82,3 +82,16 @@ test('built page is standalone: no network, no upload, no external script or sty
   assert.ok(html.includes('Try it with the sample')&&html.includes('github.com/mmonfar/proxy-process-explorer'));
   assert.ok(!/\/\*@[A-Z]+@\*\//.test(html),'all placeholders replaced');
 });
+
+test('a step button jumps straight to its own step, with the right counters, never to the previous one', ()=>{
+  TL.STEPS.forEach((s,i)=>{
+    for(const t of [TL.stepStart(i),TL.stepEnd(i)]){ const st=TL.stateAt(F,t); assert.equal(st.step,i,`step ${i+1} at ${t}`); assert.equal(st.stepId,s.id); }
+  });
+  const map=TL.STEPS.findIndex(s=>s.id==='map');
+  for(let i=map;i<TL.STEPS.length;i++){ const c=TL.stateAt(F,TL.stepStart(i)).counters; assert.equal(c.checked,F.totals.checked,'counters already complete when step '+(i+1)+' starts'); assert.equal(c.breaks,F.totals.breaks); }
+  assert.ok(TL.stateAt(F,TL.stepStart(map)+300).mapP>0,'the map is already drawing a moment after the jump');
+});
+
+test('the map shows the happy flow plus at most the top 3 deviations and counts the rest', ()=>{
+  assert.equal(F.map.shown,3); assert.ok(F.map.hidden>0&&Number.isInteger(F.map.hidden));
+});

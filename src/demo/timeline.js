@@ -18,7 +18,7 @@ const STEPS=[
    caption:'That was a made-up sample. Open the explorer with it and click around, or read the code.'}
 ];
 const TOTAL=STEPS[STEPS.length-1].to;
-const T={fileIn:[200,1500],chips:[1500,6200],snap:[7600,11200],count:[13600,21000],map:[22300,26600],cards:[28400,31600],cta:[34000,35000]};
+const T={fileIn:[200,1500],chips:[1500,6200],snap:[7600,11200],count:[13600,21000],map:[22100,26600],cards:[28400,31600],cta:[34000,35000]};
 
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const prog=(t,[a,b])=>clamp((t-a)/(b-a),0,1);
@@ -67,7 +67,9 @@ function stateAt(facts,t0){
   return {t,step:idx,stepId:step.id,stepTitle:step.title,caption:step.caption,stepCount:STEPS.length,
     file:out3(prog(t,T.fileIn)),cols,flowP:sp,flow,rulesP:cp,rules,counters,mapP,cards:landed,cta:prog(t,T.cta),done:t>=TOTAL};
 }
+/* A step button jumps to exactly the start (playing) or the finished look (paused) of its own step. */
+const stepStart=i=>STEPS[i].from, stepEnd=i=>STEPS[i].to-1;
 const finalState=f=>stateAt(f,TOTAL);
 
-const api={STEPS,TOTAL,T,stateAt,finalState,makePrefix,jumbled};
+const api={stepStart,stepEnd,STEPS,TOTAL,T,stateAt,finalState,makePrefix,jumbled};
 if(typeof module!=='undefined') module.exports=api; else globalThis.DemoTimeline=api;

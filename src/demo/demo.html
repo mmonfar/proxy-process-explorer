@@ -14,10 +14,12 @@
   <div class="ttl"><h1>Proxy process explorer</h1><p class="sub">Watch it work on a made-up sample</p></div>
 </header>
 <main class="demo" id="demo" aria-label="Self-playing demo">
-  <nav class="steps" id="steps" aria-label="Demo steps"></nav>
-  <section class="side">
-    <p class="stepno" id="stepno"></p>
-    <p class="caption" id="caption" role="status" aria-live="polite"></p>
+  <div class="left">
+    <nav class="steps" id="steps" aria-label="Demo steps"></nav>
+    <div class="cap">
+      <p class="stepno" id="stepno"></p>
+      <p class="caption" id="caption" role="status" aria-live="polite"></p>
+    </div>
     <div class="ctrl">
       <button class="btn primary" id="play" type="button">Pause</button>
       <button class="btn" id="replay" type="button">Replay</button>
@@ -27,8 +29,8 @@
       <a class="btn primary big" id="try" href="process_explorer.html#sample">Try it with the sample</a>
       <a class="btn" id="gh" href="https://github.com/mmonfar/proxy-process-explorer" rel="noopener">View on GitHub</a>
     </div>
-  </section>
-  <section class="main">
+  </div>
+  <div class="right">
     <div class="counters" id="counters" aria-label="Live counters">
       <div class="ctr"><b id="cChecked">0</b><span>cases checked</span></div>
       <div class="ctr"><b id="cBreaks">0</b><span>rule breaks found</span></div>
@@ -48,14 +50,21 @@
         <p class="phead">Five rules, every case checked</p>
         <ul class="rules" id="rules"></ul>
       </div>
-      <div class="panel" id="p-map"><div class="map" id="map"></div></div>
+      <div class="panel" id="p-map"><div class="mapwrap"><div class="map" id="map"></div>
+        <aside class="legend" id="legend" aria-label="How to read the map">
+          <p class="phead">How to read it</p>
+          <p><i class="sw" style="background:#17242B"></i>Dark line: the happy flow</p>
+          <p><i class="sw" style="background:#C08A55"></i>Light arrow: skips a step ahead</p>
+          <p><i class="sw" style="background:#B74040"></i>Red arrow: goes back to an earlier step</p>
+          <p class="more" id="moreRoutes"></p>
+        </aside></div></div>
       <div class="panel" id="p-find">
         <p class="phead">What the numbers say</p>
         <ul class="finds" id="finds"></ul>
         <p class="fnote" id="fnote"></p>
       </div>
     </div>
-  </section>
+  </div>
 </main>
 <footer class="foot">Synthetic sample: every case is made up. Runs only in this page; nothing is uploaded or stored. Not a medical device. AGPL-3.0-or-later, commercial licence on request. Independent personal project, not affiliated with any employer.</footer>
 <script id="facts" type="application/json">/*@FACTS@*/</script>

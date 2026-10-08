@@ -30,13 +30,22 @@ export function buildFacts(){
     worst?{head:`${pct(worst.rate)}%`,text:`met the rule "${worst.label}". It is the rule that breaks most often (${worst.breach.toLocaleString()} breaks).`}
           :{head:hrs(slow.st.med),text:`median wait from ${lab(slow.a)} to ${lab(slow.b)}.`}
   ];
-  const map=core.renderMapSvg(A.model,{ref,order:A.order,metric:'freq',minPct:10,interactive:false});
+  // Map: the happy flow plus the three most common deviations only; everything else is summarised as a count.
+  const hset=new Set(ref), onHappy=k=>k==='S'||k==='E'||hset.has(k), total=A.model.total;
+  const refE=new Set(['S',...ref,'E'].slice(0,-1).map((k,i,a)=>k+'>'+['S',...ref,'E'][i+1]));
+  const all=[...A.model.edges.values()], dev=all.filter(e=>!refE.has(e.key)).sort((x,y)=>y.n-x.n);
+  const cand=dev.filter(e=>onHappy(e.a)&&onHappy(e.b));
+  let minPct=cand.length>3?cand[2].n/total*100-1e-9:0;
+  while(cand.filter(e=>e.n/total*100>=minPct).length>3) minPct+=1e-6;
+  const shown=cand.filter(e=>e.n/total*100>=minPct);
+  const map=core.renderMapSvg(A.model,{ref,order:ref,metric:'freq',minPct,interactive:false});
+  const hidden=dev.length-shown.length;
   return {
     name:cfg.name, terms:{cases:T.cases}, file:'synthetic_discharges.csv', fileRows:rows.length,
     cols, happy:ref.map(lab), skipped:S.steps.filter(s=>!ref.includes(s.k)).map(s=>s.l),
     rules:RS.map(x=>({label:x.label})), cases,
     totals:{checked:R.length,breaks:RS.reduce((a,x)=>a+x.breach,0),dueYes:R.filter(r=>r.byDue===true).length,dueN:R.filter(r=>r.byDue!=null).length,onTime:st.due},
     ruleTotals:RS.map(x=>({met:x.met,breach:x.breach})),
-    findings, map:{svg:map.svg.replace(/ width="\d+" height="\d+"/,''),w:map.w,h:map.h}
+    findings, map:{svg:map.svg.replace(/ width="\d+" height="\d+"/,''),w:map.w,h:map.h,shown:shown.length,hidden}
   };
 }

@@ -21,6 +21,7 @@ const ruleEls=F.rules.map(r=>{ const li=el('li'); const bar=el('div','rbar'), m=
   const num=el('div','rnum'), a=el('span'), c=el('span'); num.append(a,c); li.append(el('strong',null,r.label),bar,num); $('rules').append(li); return {m,b,a,c}; });
 const findEls=F.findings.map(f=>{ const li=el('li'); li.append(el('b',null,f.head),el('span',null,f.text)); $('finds').append(li); return li; });
 $('map').innerHTML=F.map.svg; $('map').firstElementChild.setAttribute('role','img'); $('map').firstElementChild.setAttribute('aria-label','Process map of the sample: boxes are steps, arrows are hand-overs');
+$('moreRoutes').textContent=`+${F.map.hidden} other routes not drawn`;
 $('fnote').textContent=`Worked out by the same engine as the explorer, from ${fmt(F.totals.checked)} made-up ${F.terms.cases}.`;
 const panels=Object.fromEntries(['file','flow','rules','map','find'].map(k=>[k,$('p-'+k)]));
 
@@ -39,6 +40,7 @@ function draw(s){
   s.rules.forEach((r,i)=>{ const e=ruleEls[i]; e.m.style.width=(100*r.met/n).toFixed(2)+'%'; e.b.style.width=(100*r.breach/n).toFixed(2)+'%';
     e.a.textContent=`Met ${fmt(r.met)}`; const c=e.c; c.textContent=''; c.append(document.createTextNode('Broken '),el('em',null,fmt(r.breach))); });
   $('map').style.clipPath=`inset(0 0 ${((1-s.mapP)*100).toFixed(1)}% 0)`;
+  $('legend').style.opacity=s.mapP>0.85?1:0;
   findEls.forEach((e,i)=>e.classList.toggle('in',i<s.cards)); $('fnote').classList.toggle('in',s.cards>=findEls.length);
   $('cta').classList.toggle('on',s.stepId==='cta');
   $('barfill').style.width=(100*s.t/TL.TOTAL).toFixed(1)+'%';
@@ -52,7 +54,7 @@ function frame(now){ if(!playing) return; const dt=Math.min(100,now-last); last=
   draw(TL.stateAt(F,t)); raf=requestAnimationFrame(frame); }
 function play(){ if(playing) return; playing=true; if(t>=TL.TOTAL) t=0; last=performance.now(); label(); raf=requestAnimationFrame(frame); }
 function pause(){ playing=false; cancelAnimationFrame(raf); label(); }
-function jump(i){ const s=TL.STEPS[i]; t=playing?s.from+1:s.to-1; draw(TL.stateAt(F,t)); if(reduced.matches&&playing) pause(); }
+function jump(i){ const s=TL.STEPS[i]; t=playing?TL.stepStart(i):TL.stepEnd(i); last=performance.now(); draw(TL.stateAt(F,t)); if(reduced.matches&&playing) pause(); }
 $('play').onclick=()=>playing?pause():play();
 $('replay').onclick=()=>{ t=0; draw(TL.stateAt(F,0)); lastStep=-1; draw(TL.stateAt(F,0)); play(); };
 document.addEventListener('keydown',e=>{ if(e.key===' '&&e.target===document.body){ e.preventDefault(); playing?pause():play(); } });

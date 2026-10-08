@@ -117,7 +117,7 @@ main{padding:14px 24px 40px;max-width:1720px;margin:0 auto}
 
 /* KPIs and tabs */
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--white);border:1px solid var(--rule);margin-bottom:10px}
-.kpi span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi span{overflow-wrap:anywhere;white-space:normal;min-height:2.6em}
 .kpi{padding:6px 14px;border-left:1px solid var(--rule)}
 .kpi:first-child{border-left:0;background:var(--canvas);color:var(--cream)}
 .kpi b{display:block;font:800 19px/1.15 var(--fD);letter-spacing:-.03em;color:var(--ink)}
@@ -254,7 +254,7 @@ body.has-app .privacy{display:none}
  .top .sub,.top .file{display:none}
  .top{gap:8px}
  .kpis{display:flex;overflow-x:auto}
- .kpi{flex:0 0 138px}
+ .kpi{flex:0 0 150px}
  .empty{margin-top:5vh}.empty h2{font-size:27px}
  .tabs button{padding:10px 12px}
  .pop{width:min(300px,86vw)}

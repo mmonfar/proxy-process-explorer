@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proxy process explorer: watch it work</title>
+<style>/*@STYLES@*/</style>
+</head>
+<body>
+<header class="top">
+  <div class="mm-wordmark" role="img" aria-label="mmonfar">mmonfar<i class="mm-dot"></i></div>
+  <div class="ttl"><h1>Proxy process explorer</h1><p class="sub">Watch it work on a made-up sample</p></div>
+</header>
+<main class="demo" id="demo" aria-label="Self-playing demo">
+  <nav class="steps" id="steps" aria-label="Demo steps"></nav>
+  <section class="side">
+    <p class="stepno" id="stepno"></p>
+    <p class="caption" id="caption" role="status" aria-live="polite"></p>
+    <div class="ctrl">
+      <button class="btn primary" id="play" type="button">Pause</button>
+      <button class="btn" id="replay" type="button">Replay</button>
+      <span class="bar" aria-hidden="true"><i id="barfill"></i></span>
+    </div>
+    <div class="cta" id="cta">
+      <a class="btn primary big" id="try" href="process_explorer.html#sample">Try it with the sample</a>
+      <a class="btn" id="gh" href="https://github.com/mmonfar/proxy-process-explorer" rel="noopener">View on GitHub</a>
+    </div>
+  </section>
+  <section class="main">
+    <div class="counters" id="counters" aria-label="Live counters">
+      <div class="ctr"><b id="cChecked">0</b><span>cases checked</span></div>
+      <div class="ctr"><b id="cBreaks">0</b><span>rule breaks found</span></div>
+      <div class="ctr"><b id="cOnTime">–</b><span>on time</span></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="panel" id="p-file">
+        <div class="file"><span class="fname" id="fname"></span><span class="fmeta" id="fmeta"></span></div>
+        <ul class="chips" id="chips"></ul>
+      </div>
+      <div class="panel" id="p-flow">
+        <p class="phead">Happy flow: the ideal order of steps</p>
+        <div class="flow" id="flow"></div>
+        <p class="note" id="skipNote"></p>
+      </div>
+      <div class="panel" id="p-rules">
+        <p class="phead">Five rules, every case checked</p>
+        <ul class="rules" id="rules"></ul>
+      </div>
+      <div class="panel" id="p-map"><div class="map" id="map"></div></div>
+      <div class="panel" id="p-find">
+        <p class="phead">What the numbers say</p>
+        <ul class="finds" id="finds"></ul>
+        <p class="fnote" id="fnote"></p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="foot">Synthetic sample: every case is made up. Runs only in this page; nothing is uploaded or stored. Not a medical device. AGPL-3.0-or-later, commercial licence on request. Independent personal project, not affiliated with any employer.</footer>
+<script id="facts" type="application/json">/*@FACTS@*/</script>
+<script>/*@TIMELINE@*/</script>
+<script>/*@DEMO@*/</script>
+</body>
+</html>

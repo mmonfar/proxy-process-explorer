@@ -9,3 +9,14 @@ html=html.replace(/<!--@[A-Z_]+@-->\n?/g,'');
 mkdirSync(new URL('./dist/',import.meta.url),{recursive:true});
 writeFileSync(new URL('./dist/process_explorer.html',import.meta.url),html);
 console.log(`dist/process_explorer.html  ${(html.length/1024).toFixed(0)} KB`);
+
+// Hero demo (dist/demo.html): the real engine runs here, at build time, on the synthetic sample.
+// The page plays those results back; it carries no engine, no file upload and no network access.
+const {buildFacts}=await import('./src/demo/facts.mjs');
+const facts=JSON.stringify(buildFacts()).replace(/</g,'\u003c');
+const dp={STYLES:rd('./src/demo/demo.css'),TIMELINE:rd('./src/demo/timeline.js'),DEMO:rd('./src/demo/demo.js')};
+for(const [k,v] of Object.entries(dp)) if(/<\/script/i.test(v)) throw new Error(`demo ${k} contains a closing script tag`);
+let demo=rd('./src/demo/demo.html');
+demo=demo.replace('/*@STYLES@*/',()=>dp.STYLES).replace('/*@FACTS@*/',()=>facts).replace('/*@TIMELINE@*/',()=>dp.TIMELINE).replace('/*@DEMO@*/',()=>dp.DEMO);
+writeFileSync(new URL('./dist/demo.html',import.meta.url),demo);
+console.log(`dist/demo.html  ${(demo.length/1024).toFixed(0)} KB`);

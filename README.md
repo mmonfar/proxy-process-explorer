@@ -36,6 +36,14 @@ This tool does the first list honestly and says so on every slide it exports. Fo
    - **Variables**: tick the variables that are relevant for risk.
 4. Explore the tabs, then **Export slides (.pptx)** for a report built from the current filters.
 
+## Hero demo (self-playing)
+
+`dist/demo.html` is a standalone page (about 70 KB, no network, no upload, no libraries) that plays the explorer on the synthetic sample in about 38 seconds, looping: columns detected, happy flow snaps into order, five rules checked while the counters tick up (cases checked, rule breaks, % on time), the process map draws itself, three plain-language findings land, then a call to action ("Try it with the sample" opens `process_explorer.html#sample`, plus the GitHub link). A caption explains every step in plain words.
+
+- Every number comes from the real engine: `npm run build` runs `src/core.js` on the sample (`src/demo/facts.mjs`) and embeds the results; the page only plays them back through one pure state function (`src/demo/timeline.js`), so counters can never show NaN and the final values equal the engine's.
+- Pause, Replay, and step buttons are keyboard accessible; it works at 390 px width. With `prefers-reduced-motion` it shows the finished picture and waits for Play.
+- To embed on a website: put `demo.html` and `process_explorer.html` side by side, or change the link in `src/demo/demo.html` and rebuild; an iframe at 100% width works.
+
 ## What the tabs show
 
 | Tab | Content |

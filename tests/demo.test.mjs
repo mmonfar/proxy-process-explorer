@@ -95,3 +95,29 @@ test('a step button jumps straight to its own step, with the right counters, nev
 test('the map shows the happy flow plus at most the top 3 deviations and counts the rest', ()=>{
   assert.equal(F.map.shown,3); assert.ok(F.map.hidden>0&&Number.isInteger(F.map.hidden));
 });
+
+test('captions mode: one non-empty caption per step, no NaN, readable twice, normal mode unchanged', ()=>{
+  assert.equal(TL.CAPTIONS.length,TL.STEPS.length);
+  TL.CAPTIONS.forEach((c,i)=>{ const words=c.trim().split(/\s+/).length;
+    assert.ok(c.length>10&&!/NaN|undefined|null/.test(c),'caption '+(i+1)); assert.ok(c.length<=110,'fits two lines');
+    assert.ok(TL.CAP_DUR[i]>=4000&&TL.CAP_DUR[i]>=2000*words/3&&TL.CAP_DUR[i]>=TL.STEPS[i].to-TL.STEPS[i].from,'step '+(i+1)+' is on screen long enough'); });
+  assert.equal(TL.CAP_TOTAL,TL.CAP_DUR.reduce((a,b)=>a+b,0)); assert.ok(TL.CAP_TOTAL<=90000);
+  const bad=[], seen=new Set();
+  for(let t=-500;t<=TL.CAP_TOTAL+2000;t+=50){ const s=TL.captionAt(F,t); seen.add(s.step);
+    assert.equal(s.caption,TL.CAPTIONS[s.step]); assert.ok(s.caption.length>0);
+    scan({...s,cols:s.cols.map(c=>c.label+c.role)},'t'+t,bad); if(bad.length>5) break; }
+  assert.deepEqual(bad,[]); assert.equal(seen.size,TL.STEPS.length,'every step gets its caption');
+  // the clock only slows down: monotone, same start and end as the normal timeline, stateAt untouched
+  let prev=-1; for(let t=0;t<=TL.CAP_TOTAL;t+=50){ const m=TL.capToT(t); assert.ok(m>=prev); prev=m; }
+  assert.equal(TL.capToT(0),0); assert.equal(TL.capToT(TL.CAP_TOTAL),TL.TOTAL);
+  assert.equal(TL.stateAt(F,5000).caption,TL.STEPS[0].caption,'normal captions are unchanged');
+  assert.equal(TL.captionAt(F,TL.capStart(2)).step,2); assert.equal(TL.captionAt(F,TL.capEnd(2)).step,2);
+});
+
+test('built page: caption band only switches on with #captions, uses brand tokens and respects reduced motion', ()=>{
+  const html=readFileSync(new URL('../dist/demo.html',import.meta.url),'utf8');
+  assert.ok(html.includes("location.hash==='#captions'")&&/id="capband"[^>]*hidden/.test(html));
+  const css=readFileSync(new URL('../src/demo/demo.css',import.meta.url),'utf8'), band=css.match(/\.capband[^}]*}/g).join('');
+  assert.ok(!/#[0-9a-f]{3,6}\b/i.test(band),'band uses var(--token) colours only');
+  assert.ok(/animation:capin \.3s/.test(band)&&/prefers-reduced-motion:reduce\)\{\.capband p\{animation:none/.test(css));
+});

@@ -71,5 +71,25 @@ function stateAt(facts,t0){
 const stepStart=i=>STEPS[i].from, stepEnd=i=>STEPS[i].to-1;
 const finalState=f=>stateAt(f,TOTAL);
 
-const api={stepStart,stepEnd,STEPS,TOTAL,T,stateAt,finalState,makePrefix,jumbled};
+/* Caption mode (video only, page URL #captions): one short caption per step, and a slower clock so each caption
+   can be read twice (about 1 s per 3 words, read twice, never under 4 s and never faster than the normal step).
+   captionAt() only re-maps the clock and swaps the caption text; it calls the pure stateAt(), so nothing else changes. */
+const CAPTIONS=[
+  'It reads your export and suggests what each column is. Nothing leaves your computer.',
+  'You set the order the steps should follow. Everything is compared with it.',
+  "It checks each case against your rules, such as 'discharged before 14:00', and counts the breaks.",
+  'The map shows how cases really moved, and where they left the planned order.',
+  'The findings say what this means in plain numbers.',
+  'Try it on the made-up sample, or read the code on GitHub.'
+];
+const capWords=c=>c.trim().split(/\s+/).length;
+const CAP_DUR=STEPS.map((s,i)=>Math.max(s.to-s.from,4000,Math.ceil(2000*capWords(CAPTIONS[i])/3/100)*100));
+const CAP_FROM=CAP_DUR.map((_,i)=>CAP_DUR.slice(0,i).reduce((a,b)=>a+b,0));
+const CAP_TOTAL=CAP_DUR.reduce((a,b)=>a+b,0);
+const capStart=i=>CAP_FROM[i], capEnd=i=>CAP_FROM[i]+CAP_DUR[i]-1;
+function capToT(tc0){ const tc=clamp(tc0,0,CAP_TOTAL); let i=CAP_FROM.findIndex((f,k)=>tc<f+CAP_DUR[k]); if(i<0) i=STEPS.length-1;
+  const st=STEPS[i]; return st.from+clamp((tc-CAP_FROM[i])/CAP_DUR[i],0,1)*(st.to-st.from); }
+function captionAt(facts,tc){ const s=stateAt(facts,capToT(tc)); return {...s,tc:clamp(tc,0,CAP_TOTAL),caption:CAPTIONS[s.step],done:tc>=CAP_TOTAL}; }
+
+const api={stepStart,stepEnd,STEPS,TOTAL,T,stateAt,finalState,makePrefix,jumbled,CAPTIONS,CAP_DUR,CAP_FROM,CAP_TOTAL,capStart,capEnd,capToT,captionAt};
 if(typeof module!=='undefined') module.exports=api; else globalThis.DemoTimeline=api;

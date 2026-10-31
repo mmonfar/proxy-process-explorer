@@ -279,7 +279,7 @@ function validateConfig(c,header){
   (c.rules||[]).forEach((r,i)=>{ const P=ruleProblems(r,c); if(P.length) warnings.push(`Rule ${i+1} (${ruleLabel(r,c)}) is ignored: ${P.join(' ')}`); });
   if(!ids.length) warnings.push('No case ID column: cases will be numbered by row, and the lookup searches row numbers.');
   const pii=Object.keys(c.columns).filter(k=>c.columns[k].role!=='ignore'&&isPiiHeader(k));
-  if(pii.length) warnings.push(`These columns look like personal data and are in use: ${pii.join(', ')}. Everything stays in this browser, but slides and downloads will carry them if shown.`);
+  if(pii.length) warnings.push(`These columns look like personal data and are in use: ${pii.join(', ')}. Everything stays in this browser, but slides and exported files will carry them if shown.`);
   return {errors,warnings,ok:!errors.length};
 }
 

@@ -316,8 +316,8 @@ function renderVariants(){ const V=S.A.model.variants, tot=S.A.st.n||1;
     <div class="bar"><i style="width:${(v.n/V[0].n*100).toFixed(1)}%"></i></div><div class="chips">${chipsFor(v.trace)}</div>
     <div class="seqline">${esc(v.trace.map(k=>shortL(k)).join(S.opt.vmode==='set'?' + ':' → '))}</div></button>`).join('')+(V.length>60?`<p class="note">Showing the 60 most common of ${V.length.toLocaleString()}. The rest together cover ${pctS(V.slice(60).reduce((a,v)=>a+v.n,0)/tot)}.</p>`:''); }
 $('#variants').onclick=e=>{ const b=e.target.closest('[data-v]'); if(!b) return; const k=b.dataset.v; S.sel=S.sel&&S.sel.type==='variant'&&S.sel.key===k?null:{type:'variant',key:k}; renderMap(); renderVariants(); renderSel(); };
-$('#mapWrap').onclick=e=>{ const n=e.target.closest('[data-node]'), ed=e.target.closest('[data-edge]');
-  const s=n?{type:'node',key:n.dataset.node}:ed?{type:'edge',key:ed.dataset.edge}:null;
+$('#mapWrap').onclick=e=>{ const n=e.target.closest('[data-node]'), edgeEl=e.target.closest('[data-edge]');
+  const s=n?{type:'node',key:n.dataset.node}:edgeEl?{type:'edge',key:edgeEl.dataset.edge}:null;
   S.sel=s&&S.sel&&S.sel.type===s.type&&S.sel.key===s.key?null:s; renderMap(); renderVariants(); renderSel(); };
 function selRecs(){ const s=S.sel, M=S.A.model; if(!s) return [];
   if(s.type==='variant'){ const v=M.variants.find(x=>x.key===s.key); return v?v.recs:[]; }

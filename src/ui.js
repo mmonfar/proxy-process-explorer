@@ -62,7 +62,7 @@ async function readCfgFile(file){
 $('#cfgFile').onchange=e=>readCfgFile(e.target.files[0]);
 function exportCfg(c){ download(new Blob([JSON.stringify(c,null,2)],{type:'application/json'}),`${slug(c.name)}_setup.json`); }
 $('#cfgExport').onclick=()=>exportCfg(normaliseConfig(S.draft));
-function showEmpty(){ document.body.classList.remove('has-app'); $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#setupBtn').hidden=true; }
+function showEmpty(){ document.body.classList.remove('has-app'); $('#empty').hidden=false; $('#wiz').hidden=true; $('#app').hidden=true; $('#exportBtn').disabled=true; $('#exportHint').hidden=false; $('#setupBtn').hidden=true; }
 
 /* =====================================================================
    Setup wizard
@@ -167,7 +167,7 @@ function applySetup(){
     S.all=B.recs; S.meta=B.meta; S.f={}; S.sel=null; S.refMode='happy'; S.refCustom=null; S.lastQ='';
     S.opt.weekend=S.cfg.settings.weekend||[6,0]; S.opt.basis=S.cfg.settings.basis==='end'?'end':'start';
     $('#refSel').value='happy'; $('#refSel option[value=custom]').disabled=true;
-    document.body.classList.add('has-app'); $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#setupBtn').hidden=false;
+    document.body.classList.add('has-app'); $('#wiz').hidden=true; $('#app').hidden=false; $('#exportBtn').disabled=false; $('#exportHint').hidden=true; $('#setupBtn').hidden=false;
     $('#subTitle').textContent=`${S.cfg.name} · ${S.cfg.happyFlow.length} happy-flow steps · ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`;
     setupRulesUI(); syncSettingsUI(); buildFilters(); recompute(); showTab('process'); toast(`Loaded ${S.all.length.toLocaleString()} ${S.cfg.terms.cases}`);
   }catch(e){ console.error(e); toast(e.message||String(e),true); }

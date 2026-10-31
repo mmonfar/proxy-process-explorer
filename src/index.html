@@ -25,7 +25,8 @@
     <label class="btn" for="file" tabindex="0" id="loadLbl">Load file</label>
     <input id="file" type="file" accept=".xlsx,.csv" class="vh" tabindex="-1">
     <input id="cfgFile" type="file" accept=".json,application/json" class="vh" tabindex="-1">
-    <button id="exportBtn" class="btn primary" disabled>Export slides (.pptx)</button>
+    <span id="exportHint" class="hint">Load data and finish setup to export</span>
+    <button id="exportBtn" class="btn primary" disabled title="Load a file or the sample, then finish setup">Export slides (.pptx)</button>
   </div>
 </header>
 <div class="privacy">Runs only in this browser. The page's security policy blocks every network request, so your file is never uploaded, sent or stored. Closing the tab clears it.</div>
@@ -43,7 +44,7 @@
     </div>
     <div id="cfgNote"></div>
     <div id="loadErr"><div class="err" id="scriptBlocked">This viewer is blocking the page's scripts, so files can't be loaded here. Download the .html file and open it directly in a current browser.</div></div>
-    <details class="shape">
+    <details class="shape" open>
       <summary>What should my file look like?</summary>
 
       <table>

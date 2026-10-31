@@ -1,6 +1,6 @@
 {
   "name": "proxy-process-explorer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Offline, single-file process explorer for spreadsheets with one timestamp column per step.",
   "license": "AGPL-3.0-or-later",

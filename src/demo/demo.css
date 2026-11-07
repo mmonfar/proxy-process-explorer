@@ -1,6 +1,6 @@
-/* Hero demo styles. mmonfar tokens, zero radius. The alert colour is a labelled non-brand semantic constant. */
+/* Hero demo styles. mmonfar tokens, zero radius. The alert and skip colours are labelled non-brand semantic constants (they match the map drawn by core.js). */
 :root{--canvas:#17242B;--cream:#FDFBF7;--white:#FFFFFF;--teal:#008080;--tealB:#00A3A3;--ink:#17242B;--ink2:#6E7B80;--ink3:#B3BABD;
-  --rule:#E3E5E4;--ruleM:#D3D7D8;--t6:#E4EFEB;--t4:#ACD4D1;--onDark2:#B9BEC0;--alert:#B74040;
+  --rule:#E3E5E4;--ruleM:#D3D7D8;--t6:#E4EFEB;--t4:#ACD4D1;--onDark2:#B9BEC0;--alert:#B74040;--skip:#C08A55;
   --fD:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;--fL:'Space Grotesk','Segoe UI',system-ui,sans-serif;--stageH:calc(100vh - 184px)}
 *{box-sizing:border-box;border-radius:0}
 [hidden]{display:none!important}

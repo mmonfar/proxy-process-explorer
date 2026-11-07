@@ -6,9 +6,9 @@
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proxy process explorer: watch it work</title>
-<style>/* Hero demo styles. mmonfar tokens, zero radius. The alert colour is a labelled non-brand semantic constant. */
+<style>/* Hero demo styles. mmonfar tokens, zero radius. The alert and skip colours are labelled non-brand semantic constants (they match the map drawn by core.js). */
 :root{--canvas:#17242B;--cream:#FDFBF7;--white:#FFFFFF;--teal:#008080;--tealB:#00A3A3;--ink:#17242B;--ink2:#6E7B80;--ink3:#B3BABD;
-  --rule:#E3E5E4;--ruleM:#D3D7D8;--t6:#E4EFEB;--t4:#ACD4D1;--onDark2:#B9BEC0;--alert:#B74040;
+  --rule:#E3E5E4;--ruleM:#D3D7D8;--t6:#E4EFEB;--t4:#ACD4D1;--onDark2:#B9BEC0;--alert:#B74040;--skip:#C08A55;
   --fD:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;--fL:'Space Grotesk','Segoe UI',system-ui,sans-serif;--stageH:calc(100vh - 184px)}
 *{box-sizing:border-box;border-radius:0}
 [hidden]{display:none!important}
@@ -159,8 +159,8 @@ button{font:inherit;color:inherit}
         <aside class="legend" id="legend" aria-label="How to read the map">
           <p class="phead">How to read it</p>
           <p><i class="sw" style="background:#17242B"></i>Dark line: the happy flow</p>
-          <p><i class="sw" style="background:#C08A55"></i>Light arrow: skips a step ahead</p>
-          <p><i class="sw" style="background:#B74040"></i>Red arrow: goes back to an earlier step</p>
+          <p><i class="sw" style="background:var(--skip)"></i>Light arrow: skips a step ahead</p>
+          <p><i class="sw" style="background:var(--alert)"></i>Red arrow: goes back to an earlier step</p>
           <p class="more" id="moreRoutes"></p>
         </aside></div></div>
       <div class="panel" id="p-find">

@@ -1,5 +1,11 @@
 # Proxy Process Explorer
 
+[![Watch the 28-second teaser video](docs/media/teaser_poster.png)](docs/media/teaser.mp4)
+
+A 28-second teaser: how a spreadsheet of step times becomes a map of routes, waits and skipped steps (synthetic sample).
+
+Video licence: CC BY-NC 4.0. Synthetic data. Not a medical device.
+
 **Status: Prototype.** Built and tested on synthetic data only.
 
 A single HTML file that turns a spreadsheet of step timestamps into a process view: a map of how cases actually moved through the steps, how long each wait took, where cases left the expected path, and which groups differ. It runs offline in the browser. Nothing is uploaded.

@@ -3,7 +3,8 @@
 // truncated SHA-256 hashes of lowercase word n-grams, so this test does not itself carry them.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync,statSync} from 'node:fs';
+import {readFileSync,readdirSync,statSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join,relative} from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -19,6 +20,9 @@ function hits(text){ const tok=text.toLowerCase().match(/[\p{L}\p{N}]+/gu)||[], 
 const SKIP=new Set(['.git','node_modules']);
 function files(dir){ return readdirSync(dir).flatMap(f=>{ if(SKIP.has(f)) return []; const p=join(dir,f); return statSync(p).isDirectory()?files(p):[p]; }); }
 
+const BINARY_EXT=/\.(xlsx|pptx|png|jpe?g|gif|webp|ico|mp4|woff2?)$/i;
+const isBinary=(f,buf)=>BINARY_EXT.test(f)||buf.includes(0);
+
 test('the checker itself detects a planted term', ()=>{
   // one of the hashed terms, spelled backwards here so the source stays clean
   const planted=[...'kooltuo'].reverse().join('');
@@ -28,9 +32,21 @@ test('the checker itself detects a planted term', ()=>{
 
 test('no repository file carries a trace', ()=>{
   const bad=[];
-  for(const f of files(ROOT)){ if(/\.(xlsx|pptx|png|jpg|ico)$/i.test(f)) continue;
-    const found=hits(readFileSync(f,'utf8')); if(found.length) bad.push(relative(ROOT,f)+': '+found.join(', ')); }
+  for(const f of files(ROOT)){ const buf=readFileSync(f); if(isBinary(f,buf)) continue;
+    const found=hits(buf.toString('utf8')); if(found.length) bad.push(relative(ROOT,f)+': '+found.join(', ')); }
   assert.deepEqual(bad,[]);
+});
+
+test('the scan skips binary files but still catches a text file with a trace', ()=>{
+  const planted=[...'kooltuo'].reverse().join(''), d=mkdtempSync(join(tmpdir(),'trace-'));
+  try{
+    const bin=join(d,'clip.mp4'), nul=join(d,'blob.dat'), txt=join(d,'note.txt');
+    writeFileSync(bin,Buffer.from(`xx ${planted} xx`));            // binary by extension
+    writeFileSync(nul,Buffer.concat([Buffer.from([0,1,2]),Buffer.from(planted)])); // binary by null byte
+    writeFileSync(txt,`save the ${planted} attachment`);           // text: must be caught
+    const flagged=files(d).filter(f=>{ const b=readFileSync(f); return !isBinary(f,b)&&hits(b.toString('utf8')).length>0; });
+    assert.deepEqual(flagged.map(f=>relative(d,f)),['note.txt']);
+  } finally { rmSync(d,{recursive:true,force:true}); }
 });
 
 test('the sample workbook carries no trace', async ()=>{
